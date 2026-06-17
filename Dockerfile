@@ -20,6 +20,9 @@ RUN apt-get update && apt-get install -y \
     tigervnc-standalone-server \
     novnc \
     python3-websockify \
+    x11-xserver-utils \
+    arc-theme \
+    papirus-icon-theme \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Firefox (Mozilla Team PPA – native .deb, supports amd64 + arm64) ──────────

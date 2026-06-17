@@ -1,0 +1,13 @@
+# Extra packages to install on container startup.
+# Add one apt package name per line.
+# Lines starting with # are ignored.
+#
+# Packages are only installed when this file changes — subsequent startups
+# with the same list are instant (no apt-get run).
+#
+# Examples:
+#   git
+#   vim
+#   python3-pip
+#   nmap
+ssh
