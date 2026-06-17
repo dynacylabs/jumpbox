@@ -13,8 +13,9 @@ RUN apt-get update && apt-get install -y \
     sudo \
     dbus-x11 \
     xdg-utils \
-    openbox \
+    xfce4 \
     xfce4-terminal \
+    xfce4-goodies \
     fonts-liberation \
     software-properties-common \
     tigervnc-standalone-server \
@@ -23,7 +24,6 @@ RUN apt-get update && apt-get install -y \
     x11-xserver-utils \
     arc-theme \
     papirus-icon-theme \
-    tint2 \
     picom \
     && rm -rf /var/lib/apt/lists/*
 
