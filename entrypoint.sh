@@ -32,39 +32,209 @@ printf '%s' "${VNC_PASSWORD:-changeme}" | vncpasswd -f > ~/.vnc/passwd
 chmod 600 ~/.vnc/passwd
 
 # ── VNC xstartup ──────────────────────────────────────────────────────────────
-# dbus-launch provides a session bus for Electron/GTK apps.
-# tint2 starts first so the taskbar appears before any windows.
-# exec xfwm4 keeps the VNC session alive; session ends when xfwm4 exits.
+# GTK env vars are exported here so all child processes inherit them.
+# dbus-launch --exit-with-session wraps openbox-session so Electron/GTK apps
+# have a session bus and dbus exits cleanly when the session ends.
 cat > ~/.vnc/xstartup << 'EOF'
 #!/bin/bash
 export GTK_THEME=Arc-Dark
 export GTK2_RC_FILES="$HOME/.gtkrc-2.0"
 xrdb -merge ~/.Xresources
-xsetroot -solid "#2b303b"
-tint2 &
-exec dbus-launch --exit-with-session xfwm4
+exec dbus-launch --exit-with-session openbox-session
 EOF
 chmod +x ~/.vnc/xstartup
 
-# ── xfwm4 configuration: Arc-Dark theme ───────────────────────────────────────
-# arc-theme (installed in image) ships xfwm4 themes at
-# /usr/share/themes/Arc-Dark/xfwm4/ — we just point xfwm4 at it.
-mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
-cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml << 'EOF'
+# ── Openbox config (always recreated to avoid stale volume state) ───────────────
+rm -rf ~/.config/openbox
+mkdir -p ~/.config/openbox
+
+# rc.xml: points at the system Arc-Dark openbox theme from the arc-theme package.
+# That theme is guaranteed to exist at /usr/share/themes/Arc-Dark/openbox-3/.
+cat > ~/.config/openbox/rc.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<channel name="xfwm4" version="1.0">
-  <property name="general" type="empty">
-    <property name="theme"            type="string" value="Arc-Dark"/>
-    <property name="title_font"       type="string" value="Sans Bold 10"/>
-    <property name="button_layout"    type="string" value="O|HMC"/>
-    <property name="show_app_icon"    type="bool"   value="true"/>
-    <property name="use_compositing"  type="bool"   value="false"/>
-    <property name="frame_opacity"    type="int"    value="100"/>
-    <property name="inactive_opacity" type="int"    value="100"/>
-    <property name="snap_to_border"   type="bool"   value="true"/>
-    <property name="snap_width"       type="int"    value="10"/>
-  </property>
-</channel>
+<openbox_config xmlns="http://openbox.org/3.4/rc"
+                xmlns:xi="http://www.w3.org/2001/XInclude">
+
+  <resistance>
+    <strength>10</strength>
+    <screen_edge_strength>20</screen_edge_strength>
+  </resistance>
+
+  <focus>
+    <focusNew>yes</focusNew>
+    <followMouse>no</followMouse>
+    <focusLast>yes</focusLast>
+    <underMouse>no</underMouse>
+    <focusDelay>200</focusDelay>
+    <raiseOnFocus>no</raiseOnFocus>
+  </focus>
+
+  <placement>
+    <policy>Smart</policy>
+    <center>yes</center>
+    <monitor>Primary</monitor>
+    <primaryMonitor>1</primaryMonitor>
+  </placement>
+
+  <theme>
+    <name>Arc-Dark</name>
+    <titleLayout>NLC</titleLayout>
+    <keepBorder>yes</keepBorder>
+    <animateIconify>no</animateIconify>
+    <font place="ActiveWindow">
+      <name>Sans</name>
+      <size>10</size>
+      <weight>Bold</weight>
+      <slant>Normal</slant>
+    </font>
+    <font place="InactiveWindow">
+      <name>Sans</name>
+      <size>10</size>
+      <weight>Normal</weight>
+      <slant>Normal</slant>
+    </font>
+    <font place="MenuHeader">
+      <name>Sans</name>
+      <size>10</size>
+      <weight>Bold</weight>
+      <slant>Normal</slant>
+    </font>
+    <font place="MenuItem">
+      <name>Sans</name>
+      <size>10</size>
+      <weight>Normal</weight>
+      <slant>Normal</slant>
+    </font>
+    <font place="ActiveOnScreenDisplay">
+      <name>Sans</name>
+      <size>9</size>
+      <weight>Bold</weight>
+      <slant>Normal</slant>
+    </font>
+    <font place="InactiveOnScreenDisplay">
+      <name>Sans</name>
+      <size>9</size>
+      <weight>Normal</weight>
+      <slant>Normal</slant>
+    </font>
+  </theme>
+
+  <desktops>
+    <number>1</number>
+    <firstdesk>1</firstdesk>
+    <names><name>Desktop</name></names>
+    <popupTime>0</popupTime>
+  </desktops>
+
+  <resize>
+    <drawContents>yes</drawContents>
+    <popupShow>NonPixel</popupShow>
+    <popupPosition>Center</popupPosition>
+  </resize>
+
+  <!-- Reserve space at the bottom for the tint2 taskbar -->
+  <margins>
+    <top>0</top><bottom>40</bottom><left>0</left><right>0</right>
+  </margins>
+
+  <keyboard>
+    <chainQuitKey>C-g</chainQuitKey>
+    <keybind key="A-F4">
+      <action name="Close"/>
+    </keybind>
+    <keybind key="A-Tab">
+      <action name="NextWindow">
+        <finalactions>
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="Unshade"/>
+        </finalactions>
+      </action>
+    </keybind>
+  </keyboard>
+
+  <mouse>
+    <dragThreshold>8</dragThreshold>
+    <doubleClickTime>200</doubleClickTime>
+    <screenEdgeWarpTime>0</screenEdgeWarpTime>
+    <screenEdgeWarpMouse>false</screenEdgeWarpMouse>
+    <context name="Frame">
+      <mousebind button="A-Left" action="Press">
+        <action name="Focus"/><action name="Raise"/><action name="Move"/>
+      </mousebind>
+      <mousebind button="A-Right" action="Press">
+        <action name="Focus"/><action name="Raise"/><action name="Resize"/>
+      </mousebind>
+    </context>
+    <context name="Titlebar">
+      <mousebind button="Left" action="Drag">
+        <action name="Move"/>
+      </mousebind>
+      <mousebind button="Left" action="DoubleClick">
+        <action name="ToggleMaximizeFull"/>
+      </mousebind>
+    </context>
+    <context name="Titlebar Top Right Bottom Left TLCorner TRCorner BRCorner BLCorner">
+      <mousebind button="Left" action="Press">
+        <action name="Focus"/><action name="Raise"/><action name="Unshade"/>
+      </mousebind>
+    </context>
+    <context name="Desktop">
+      <mousebind button="Right" action="Press">
+        <action name="ShowMenu"><menu>root-menu</menu></action>
+      </mousebind>
+    </context>
+    <context name="BLCorner BRCorner">
+      <mousebind button="Left" action="Drag">
+        <action name="Resize"/>
+      </mousebind>
+    </context>
+  </mouse>
+
+  <menu>
+    <file>menu.xml</file>
+    <hideDelay>200</hideDelay>
+    <middle>no</middle>
+    <submenuShowDelay>100</submenuShowDelay>
+    <submenuHideDelay>400</submenuHideDelay>
+    <applicationIcons>no</applicationIcons>
+    <manageDesktops>no</manageDesktops>
+  </menu>
+
+  <applications/>
+
+</openbox_config>
+EOF
+
+# Right-click desktop menu
+cat > ~/.config/openbox/menu.xml << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_menu xmlns="http://openbox.org/3.4/menu">
+  <menu id="root-menu" label="Jumpbox">
+    <item label="Terminal">
+      <action name="Execute"><command>xfce4-terminal</command></action>
+    </item>
+    <item label="Firefox">
+      <action name="Execute"><command>firefox</command></action>
+    </item>
+    <item label="VS Code">
+      <action name="Execute"><command>code --no-sandbox --disable-gpu</command></action>
+    </item>
+    <item label="Claude Desktop">
+      <action name="Execute"><command>claude-desktop --no-sandbox</command></action>
+    </item>
+    <separator/>
+    <item label="Reconfigure Openbox">
+      <action name="Reconfigure"/>
+    </item>
+  </menu>
+</openbox_menu>
+EOF
+
+# Autostart: background + taskbar only. Apps launched from tint2 or right-click.
+cat > ~/.config/openbox/autostart << 'EOF'
+xsetroot -solid "#2b303b" &
+tint2 &
 EOF
 
 # ── tint2 taskbar: launchers + tasks + tray + clock ───────────────────────────

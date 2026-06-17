@@ -14,7 +14,6 @@ RUN apt-get update && apt-get install -y \
     dbus-x11 \
     xdg-utils \
     openbox \
-    xfwm4 \
     xfce4-terminal \
     fonts-liberation \
     software-properties-common \
