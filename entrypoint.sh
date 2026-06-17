@@ -7,8 +7,6 @@ if [ ! -w "$HOME" ]; then
 fi
 
 # ── Extra packages (~/packages.txt) ────────────────────────────────────────────
-# Add one package name per line. Lines starting with # are ignored.
-# Packages are installed on startup only when the file changes.
 PACKAGES_FILE="$HOME/packages.txt"
 PACKAGES_STAMP="$HOME/.packages.stamp"
 if [ -f "$PACKAGES_FILE" ] && [ -s "$PACKAGES_FILE" ]; then
@@ -32,9 +30,6 @@ printf '%s' "${VNC_PASSWORD:-changeme}" | vncpasswd -f > ~/.vnc/passwd
 chmod 600 ~/.vnc/passwd
 
 # ── VNC xstartup ──────────────────────────────────────────────────────────────
-# GTK env vars are exported here so all child processes inherit them.
-# dbus-launch --exit-with-session wraps openbox-session so Electron/GTK apps
-# have a session bus and dbus exits cleanly when the session ends.
 cat > ~/.vnc/xstartup << 'EOF'
 #!/bin/bash
 export GTK_THEME=Arc-Dark
@@ -48,8 +43,89 @@ chmod +x ~/.vnc/xstartup
 rm -rf ~/.config/openbox
 mkdir -p ~/.config/openbox
 
-# rc.xml: points at the system Arc-Dark openbox theme from the arc-theme package.
-# That theme is guaranteed to exist at /usr/share/themes/Arc-Dark/openbox-3/.
+# ── Custom Openbox theme (self-contained, no dependency on arc-theme) ─────────
+# Written directly into ~/.themes so it is always available regardless of what
+# system packages provide.
+mkdir -p ~/.themes/Jumpbox/openbox-3
+cat > ~/.themes/Jumpbox/openbox-3/themerc << 'EOF'
+# Jumpbox — minimal dark theme, flat design
+border.width: 1
+border.color: #181818
+
+padding.width: 8
+padding.height: 7
+
+# Active window
+window.active.border.color: #5294e2
+window.inactive.border.color: #1e1e1e
+
+window.active.title.bg: flat solid
+window.active.title.bg.color: #1e1e1e
+window.active.label.text.color: #e0e0e0
+window.active.label.bg: parentrelative
+
+window.inactive.title.bg: flat solid
+window.inactive.title.bg.color: #161616
+window.inactive.label.text.color: #555555
+window.inactive.label.bg: parentrelative
+
+# Buttons — all buttons (normal state)
+window.active.button.unpressed.bg: flat solid
+window.active.button.unpressed.bg.color: #1e1e1e
+window.active.button.unpressed.image.color: #9e9e9e
+
+# Hover — accent blue
+window.active.button.hover.bg: flat solid
+window.active.button.hover.bg.color: #5294e2
+window.active.button.hover.image.color: #ffffff
+
+# Pressed
+window.active.button.pressed.bg: flat solid
+window.active.button.pressed.bg.color: #3a7bc8
+window.active.button.pressed.image.color: #ffffff
+
+# Inactive buttons
+window.inactive.button.unpressed.bg: flat solid
+window.inactive.button.unpressed.bg.color: #161616
+window.inactive.button.unpressed.image.color: #3a3a3a
+
+# No resize handle (clean look)
+handle.width: 0
+
+# OSD (alt-tab)
+osd.bg: flat solid
+osd.bg.color: #1e1e1e
+osd.border.color: #5294e2
+osd.border.width: 1
+osd.label.text.color: #e0e0e0
+
+# Right-click menu
+menu.border.width: 1
+menu.border.color: #181818
+menu.separator.color: #333333
+menu.separator.width: 1
+menu.separator.padding.width: 6
+menu.separator.padding.height: 3
+menu.item.padding.x: 14
+menu.item.padding.y: 6
+
+menu.title.bg: flat solid
+menu.title.bg.color: #161616
+menu.title.text.color: #5294e2
+menu.title.text.justify: left
+
+menu.items.bg: flat solid
+menu.items.bg.color: #1e1e1e
+menu.items.text.color: #e0e0e0
+menu.items.disabled.text.color: #555555
+
+menu.items.active.bg: flat solid
+menu.items.active.bg.color: #5294e2
+menu.items.active.text.color: #ffffff
+menu.items.active.disabled.text.color: #9e9e9e
+EOF
+
+# ── rc.xml ─────────────────────────────────────────────────────────────────────
 cat > ~/.config/openbox/rc.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_config xmlns="http://openbox.org/3.4/rc"
@@ -77,8 +153,9 @@ cat > ~/.config/openbox/rc.xml << 'EOF'
   </placement>
 
   <theme>
-    <name>Arc-Dark</name>
-    <titleLayout>NLC</titleLayout>
+    <name>Jumpbox</name>
+    <!-- NL|IMC = [icon][label] ... [minimize][maximize][close] -->
+    <titleLayout>NL|IMC</titleLayout>
     <keepBorder>yes</keepBorder>
     <animateIconify>no</animateIconify>
     <font place="ActiveWindow">
@@ -132,7 +209,6 @@ cat > ~/.config/openbox/rc.xml << 'EOF'
     <popupPosition>Center</popupPosition>
   </resize>
 
-  <!-- Reserve space at the bottom for the tint2 taskbar -->
   <margins>
     <top>0</top><bottom>40</bottom><left>0</left><right>0</right>
   </margins>
@@ -145,9 +221,7 @@ cat > ~/.config/openbox/rc.xml << 'EOF'
     <keybind key="A-Tab">
       <action name="NextWindow">
         <finalactions>
-          <action name="Focus"/>
-          <action name="Raise"/>
-          <action name="Unshade"/>
+          <action name="Focus"/><action name="Raise"/><action name="Unshade"/>
         </finalactions>
       </action>
     </keybind>
@@ -158,6 +232,7 @@ cat > ~/.config/openbox/rc.xml << 'EOF'
     <doubleClickTime>200</doubleClickTime>
     <screenEdgeWarpTime>0</screenEdgeWarpTime>
     <screenEdgeWarpMouse>false</screenEdgeWarpMouse>
+
     <context name="Frame">
       <mousebind button="A-Left" action="Press">
         <action name="Focus"/><action name="Raise"/><action name="Move"/>
@@ -166,7 +241,11 @@ cat > ~/.config/openbox/rc.xml << 'EOF'
         <action name="Focus"/><action name="Raise"/><action name="Resize"/>
       </mousebind>
     </context>
+
     <context name="Titlebar">
+      <mousebind button="Left" action="Press">
+        <action name="Focus"/><action name="Raise"/>
+      </mousebind>
       <mousebind button="Left" action="Drag">
         <action name="Move"/>
       </mousebind>
@@ -174,19 +253,53 @@ cat > ~/.config/openbox/rc.xml << 'EOF'
         <action name="ToggleMaximizeFull"/>
       </mousebind>
     </context>
-    <context name="Titlebar Top Right Bottom Left TLCorner TRCorner BRCorner BLCorner">
-      <mousebind button="Left" action="Press">
-        <action name="Focus"/><action name="Raise"/><action name="Unshade"/>
+
+    <!-- Explicit button bindings so close/max/min always work -->
+    <context name="Close">
+      <mousebind button="Left" action="Click">
+        <action name="Close"/>
       </mousebind>
     </context>
+    <context name="Maximize">
+      <mousebind button="Left" action="Click">
+        <action name="ToggleMaximizeFull"/>
+      </mousebind>
+    </context>
+    <context name="Iconify">
+      <mousebind button="Left" action="Click">
+        <action name="Iconify"/>
+      </mousebind>
+    </context>
+
+    <context name="Top">
+      <mousebind button="Left" action="Drag">
+        <action name="Resize"><edge>top</edge></action>
+      </mousebind>
+    </context>
+    <context name="Bottom">
+      <mousebind button="Left" action="Drag">
+        <action name="Resize"><edge>bottom</edge></action>
+      </mousebind>
+    </context>
+    <context name="Left">
+      <mousebind button="Left" action="Drag">
+        <action name="Resize"><edge>left</edge></action>
+      </mousebind>
+    </context>
+    <context name="Right">
+      <mousebind button="Left" action="Drag">
+        <action name="Resize"><edge>right</edge></action>
+      </mousebind>
+    </context>
+    <context name="BLCorner BRCorner TLCorner TRCorner">
+      <mousebind button="Left" action="Drag">
+        <action name="Resize"/>
+      </mousebind>
+    </context>
+
     <context name="Desktop">
       <mousebind button="Right" action="Press">
         <action name="ShowMenu"><menu>root-menu</menu></action>
-      </mousebind>
-    </context>
-    <context name="BLCorner BRCorner">
-      <mousebind button="Left" action="Drag">
-        <action name="Resize"/>
       </mousebind>
     </context>
   </mouse>
@@ -231,17 +344,41 @@ cat > ~/.config/openbox/menu.xml << 'EOF'
 </openbox_menu>
 EOF
 
-# Autostart: background + taskbar only. Apps launched from tint2 or right-click.
+# Autostart: background + compositor + taskbar
 cat > ~/.config/openbox/autostart << 'EOF'
-xsetroot -solid "#2b303b" &
+xsetroot -solid "#141414" &
+picom --daemon --backend xrender --corner-radius 10 --shadow --shadow-radius 18 --shadow-opacity 0.5 --shadow-offset-x -12 --shadow-offset-y -12 --no-fading-openclose &
 tint2 &
+EOF
+
+# ── picom config ───────────────────────────────────────────────────────────────
+mkdir -p ~/.config/picom
+cat > ~/.config/picom/picom.conf << 'EOF'
+backend = "xrender";
+corner-radius = 10;
+rounded-corners-exclude = [
+  "window_type = 'dock'",
+  "window_type = 'desktop'",
+  "window_type = 'menu'",
+  "window_type = 'popup_menu'",
+  "window_type = 'dropdown_menu'"
+];
+shadow = true;
+shadow-radius = 18;
+shadow-opacity = 0.5;
+shadow-offset-x = -12;
+shadow-offset-y = -12;
+shadow-exclude = [
+  "window_type = 'dock'",
+  "window_type = 'tooltip'",
+  "window_type = 'menu'"
+];
+fading = false;
 EOF
 
 # ── tint2 taskbar: launchers + tasks + tray + clock ───────────────────────────
 mkdir -p ~/.config/tint2
 cat > ~/.config/tint2/tint2rc << 'EOF'
-# --- tint2: Arc-Dark, with app launchers on the left ---
-
 panel_items = LTSC
 panel_size = 100% 40
 panel_margin = 0 0
@@ -261,12 +398,12 @@ panel_window_name = tint2
 # Backgrounds
 rounded = 0
 border_width = 0
-background_color = #2f343f 100
-border_color = #2f343f 0
+background_color = #1e1e1e 100
+border_color = #1e1e1e 0
 
 rounded = 0
 border_width = 1
-background_color = #3d4251 100
+background_color = #2d2d2d 100
 border_color = #5294e2 40
 
 rounded = 0
@@ -297,13 +434,12 @@ taskbar_always_show_all_desktop_tasks = 0
 taskbar_name_padding = 0 0
 taskbar_name_background_id = 0
 taskbar_name_active_background_id = 0
-taskbar_name_font_color = #d3dae3 100
+taskbar_name_font_color = #bbbbbb 100
 taskbar_name_active_font_color = #ffffff 100
 taskbar_distribute_size = 0
 taskbar_sort_order = none
 task_align = left
 
-# Tasks
 task_text = 1
 task_icon = 1
 task_centered = 1
@@ -313,7 +449,7 @@ task_width = 180
 task_height = 36
 task_padding = 6 3 6
 task_font = Sans 10
-task_font_color = #d3dae3 85
+task_font_color = #bbbbbb 85
 task_icon_asb = 100 0 0
 task_background_id = 2
 task_active_background_id = 3
@@ -332,7 +468,7 @@ time1_format = %H:%M
 time1_font = Sans Bold 11
 time2_format = %Y-%m-%d
 time2_font = Sans 9
-clock_font_color = #d3dae3 100
+clock_font_color = #bbbbbb 100
 clock_padding = 8 0
 clock_background_id = 0
 clock_tooltip = %A %d %B %Y
@@ -347,18 +483,17 @@ systray_monitor = 1
 systray_name_filter =
 EOF
 
-# ── xfce4-terminal: Arc-Dark colour scheme ────────────────────────────────────
+# ── xfce4-terminal ────────────────────────────────────────────────────────────
 mkdir -p ~/.config/xfce4/terminal
 cat > ~/.config/xfce4/terminal/terminalrc << 'EOF'
 [Configuration]
 FontName=Monospace 11
-ColorBackground=#2f343f
-ColorForeground=#d3dae3
+ColorBackground=#1e1e1e
+ColorForeground=#d4d4d4
 ColorCursor=#5294e2
-ColorPalette=#3b4048;#cc575d;#8bc34a;#f9a825;#5294e2;#9c71c7;#26a69a;#d3dae3;#404552;#f05b5b;#9ccc65;#fbc02d;#72a4f7;#b39ddb;#4db6ac;#ffffff
+ColorPalette=#1e1e1e;#f44747;#608b4e;#dcdcaa;#569cd6;#c678dd;#56b6c2;#d4d4d4;#808080;#f44747;#608b4e;#dcdcaa;#569cd6;#c678dd;#56b6c2;#ffffff
 MiscShowUnsafePasteDialog=FALSE
 ScrollingUnlimited=TRUE
-TabActivityColor=#f9a825
 EOF
 
 # ── GTK3 settings ──────────────────────────────────────────────────────────────
@@ -402,5 +537,4 @@ echo "│  http://localhost:6080/vnc.html                            │"
 echo "└────────────────────────────────────────────────────────────┘"
 echo ""
 
-# ── Start noVNC websocket proxy (keeps container alive) ────────────────────────
 exec websockify --web /usr/share/novnc/ 6080 localhost:5901

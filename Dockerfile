@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     arc-theme \
     papirus-icon-theme \
     tint2 \
+    picom \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Firefox (Mozilla Team PPA – native .deb, supports amd64 + arm64) ──────────
