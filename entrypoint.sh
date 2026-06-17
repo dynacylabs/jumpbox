@@ -47,7 +47,7 @@ PANEL_Y="$((SCREEN_H - PANEL_H))"
 
 # ── XFCE4 config ───────────────────────────────────────────────────────────────
 # CONFIG_VERSION: bump this to force a re-init on all existing containers.
-CONFIG_VERSION=2
+CONFIG_VERSION=3
 XFCE4_CONF="$HOME/.config/xfce4"
 XFCONF="$XFCE4_CONF/xfconf/xfce-perchannel-xml"
 STORED_VER=$(cat "$XFCE4_CONF/.jumpbox-version" 2>/dev/null || echo 0)
@@ -236,7 +236,6 @@ EOF
     append_item "$(make_dockitem xfce4-terminal xfce4-terminal)"
     append_item "$(make_dockitem firefox firefox firefox-esr)"
     append_item "$(make_dockitem code code visual-studio-code)"
-    append_item "$(make_dockitem claude-desktop claude-desktop claude)"
 
     cat > "$HOME/.config/plank/dock1/settings" << EOF
 [PlankDockPreferences]
@@ -259,8 +258,8 @@ EOF
     cat > "$HOME/.config/autostart/picom.desktop" << 'EOF'
 [Desktop Entry]
 Name=picom
-Comment=Compositor — rounded corners and shadows
-Exec=picom --backend xrender --corner-radius 8 --shadow --shadow-radius 14 --shadow-opacity 0.45 --shadow-offset-x -10 --shadow-offset-y -10 --no-fading-openclose --shadow-exclude "window_type = 'dock'" --shadow-exclude "window_type = 'menu'" --shadow-exclude "window_type = 'tooltip'"
+Comment=Compositor — rounded corners only
+Exec=picom --backend xrender --corner-radius 8 --no-fading-openclose
 Type=Application
 X-GNOME-Autostart-enabled=true
 EOF

@@ -47,16 +47,6 @@ RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc \
     && apt-get install -y code \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Claude Desktop (amd64 + arm64) ───────────────────────────────────────────
-RUN curl -fsSL https://pkg.claude-desktop-debian.dev/KEY.gpg \
-        | gpg --dearmor -o /usr/share/keyrings/claude-desktop.gpg \
-    && ARCH=$(dpkg --print-architecture) \
-    && echo "deb [signed-by=/usr/share/keyrings/claude-desktop.gpg arch=${ARCH}] https://pkg.claude-desktop-debian.dev stable main" \
-         > /etc/apt/sources.list.d/claude-desktop.list \
-    && apt-get update \
-    && apt-get install -y claude-desktop \
-    && rm -rf /var/lib/apt/lists/*
-
 # ── Non-root user ──────────────────────────────────────────────────────────────
 RUN useradd -m -s /bin/bash "$USER" \
     && usermod -aG sudo "$USER" \
