@@ -1,0 +1,15 @@
+services:
+  jumpbox:
+    build: .
+    container_name: jumpbox
+    restart: unless-stopped
+    shm_size: '2gb'
+    ports:
+      # noVNC web interface — connect at http://<host>:6080/vnc.html
+      - "${NOVNC_PORT:-6080}:6080"
+    volumes:
+      # Persist home dir (VS Code settings, Firefox profile, etc.)
+      - ./data/home:/home/user
+    environment:
+      - VNC_PASSWORD=${VNC_PASSWORD:-changeme}
+      - VNC_GEOMETRY=${VNC_GEOMETRY:-1920x1080}
