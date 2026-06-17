@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     dbus-x11 \
     xdg-utils \
     openbox \
-    xterm \
+    xfce4-terminal \
     fonts-liberation \
     software-properties-common \
     tigervnc-standalone-server \

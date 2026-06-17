@@ -32,18 +32,18 @@ printf '%s' "${VNC_PASSWORD:-changeme}" | vncpasswd -f > ~/.vnc/passwd
 chmod 600 ~/.vnc/passwd
 
 # ── VNC xstartup ──────────────────────────────────────────────────────────────
-# Export GTK theme vars here so every child process (apps, tint2) inherits them.
+# dbus-launch gives Electron/GTK apps a session bus so they behave correctly.
+# GTK env vars are exported here so every child process inherits them.
 cat > ~/.vnc/xstartup << 'EOF'
 #!/bin/bash
 export GTK_THEME=Arc-Dark
 export GTK2_RC_FILES="$HOME/.gtkrc-2.0"
 xrdb -merge ~/.Xresources
-exec openbox-session
+exec dbus-launch --exit-with-session openbox-session
 EOF
 chmod +x ~/.vnc/xstartup
 
 # ── Openbox theme: Arc-Jumpbox ────────────────────────────────────────────────
-# Note: font declarations belong in rc.xml only, not themerc.
 mkdir -p ~/.themes/Arc-Jumpbox/openbox-3
 cat > ~/.themes/Arc-Jumpbox/openbox-3/themerc << 'EOF'
 border.width: 1
@@ -272,7 +272,14 @@ cat > ~/.config/openbox/rc.xml << 'EOF'
     <manageDesktops>no</manageDesktops>
   </menu>
 
-  <applications/>
+  <!-- Remove WM decorations from all normal windows.
+       Each app draws its own titlebar (Firefox, VS Code, Claude, xfce4-terminal).
+       Alt+drag still moves windows; Alt+right-drag still resizes them. -->
+  <applications>
+    <application type="normal">
+      <decor>no</decor>
+    </application>
+  </applications>
 
 </openbox_config>
 EOF
@@ -283,7 +290,7 @@ cat > ~/.config/openbox/menu.xml << 'EOF'
 <openbox_menu xmlns="http://openbox.org/3.4/menu">
   <menu id="root-menu" label="Jumpbox">
     <item label="Terminal">
-      <action name="Execute"><command>xterm</command></action>
+      <action name="Execute"><command>xfce4-terminal</command></action>
     </item>
     <item label="Firefox">
       <action name="Execute"><command>firefox</command></action>
@@ -408,33 +415,18 @@ systray_monitor = 1
 systray_name_filter =
 EOF
 
-# ── Xresources: dark xterm (Arc-Dark palette) ──────────────────────────────────
-cat > ~/.Xresources << 'EOF'
-XTerm*background:           #2f343f
-XTerm*foreground:           #d3dae3
-XTerm*cursorColor:          #5294e2
-XTerm*color0:               #3b4048
-XTerm*color1:               #cc575d
-XTerm*color2:               #8bc34a
-XTerm*color3:               #f9a825
-XTerm*color4:               #5294e2
-XTerm*color5:               #9c71c7
-XTerm*color6:               #26a69a
-XTerm*color7:               #d3dae3
-XTerm*color8:               #404552
-XTerm*color9:               #f05b5b
-XTerm*color10:              #9ccc65
-XTerm*color11:              #fbc02d
-XTerm*color12:              #72a4f7
-XTerm*color13:              #b39ddb
-XTerm*color14:              #4db6ac
-XTerm*color15:              #ffffff
-XTerm*faceName:             monospace
-XTerm*faceSize:             11
-XTerm*scrollBar:            false
-XTerm*saveLines:            10000
-XTerm*selectToClipboard:    true
-XTerm*bellIsUrgent:         false
+# ── xfce4-terminal: Arc-Dark colour scheme ────────────────────────────────────
+mkdir -p ~/.config/xfce4/terminal
+cat > ~/.config/xfce4/terminal/terminalrc << 'EOF'
+[Configuration]
+FontName=Monospace 11
+ColorBackground=#2f343f
+ColorForeground=#d3dae3
+ColorCursor=#5294e2
+ColorPalette=#3b4048;#cc575d;#8bc34a;#f9a825;#5294e2;#9c71c7;#26a69a;#d3dae3;#404552;#f05b5b;#9ccc65;#fbc02d;#72a4f7;#b39ddb;#4db6ac;#ffffff
+MiscShowUnsafePasteDialog=FALSE
+ScrollingUnlimited=TRUE
+TabActivityColor=#f9a825
 EOF
 
 # ── GTK3 settings ──────────────────────────────────────────────────────────────
@@ -458,6 +450,18 @@ gtk-font-name="Sans 10"
 gtk-xft-antialias=1
 gtk-xft-hinting=1
 gtk-xft-hintstyle="hintfull"
+EOF
+
+# ── Xresources (kept for any xterm fallback) ───────────────────────────────────
+cat > ~/.Xresources << 'EOF'
+XTerm*background:           #2f343f
+XTerm*foreground:           #d3dae3
+XTerm*cursorColor:          #5294e2
+XTerm*faceName:             monospace
+XTerm*faceSize:             11
+XTerm*scrollBar:            false
+XTerm*saveLines:            10000
+XTerm*selectToClipboard:    true
 EOF
 
 # ── Kill any stale VNC lock from a previous run ────────────────────────────────
