@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     x11-xserver-utils \
     arc-theme \
     papirus-icon-theme \
+    tint2 \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Firefox (Mozilla Team PPA – native .deb, supports amd64 + arm64) ──────────
@@ -42,6 +43,16 @@ RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc \
          > /etc/apt/sources.list.d/vscode.list \
     && apt-get update \
     && apt-get install -y code \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Claude Desktop (amd64 + arm64) ───────────────────────────────────────────
+RUN curl -fsSL https://pkg.claude-desktop-debian.dev/KEY.gpg \
+        | gpg --dearmor -o /usr/share/keyrings/claude-desktop.gpg \
+    && ARCH=$(dpkg --print-architecture) \
+    && echo "deb [signed-by=/usr/share/keyrings/claude-desktop.gpg arch=${ARCH}] https://pkg.claude-desktop-debian.dev stable main" \
+         > /etc/apt/sources.list.d/claude-desktop.list \
+    && apt-get update \
+    && apt-get install -y claude-desktop \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Non-root user ──────────────────────────────────────────────────────────────

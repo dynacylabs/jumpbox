@@ -32,14 +32,18 @@ printf '%s' "${VNC_PASSWORD:-changeme}" | vncpasswd -f > ~/.vnc/passwd
 chmod 600 ~/.vnc/passwd
 
 # ── VNC xstartup ──────────────────────────────────────────────────────────────
+# Export GTK theme vars here so every child process (apps, tint2) inherits them.
 cat > ~/.vnc/xstartup << 'EOF'
 #!/bin/bash
+export GTK_THEME=Arc-Dark
+export GTK2_RC_FILES="$HOME/.gtkrc-2.0"
 xrdb -merge ~/.Xresources
 exec openbox-session
 EOF
 chmod +x ~/.vnc/xstartup
 
-# ── Openbox theme: Arc-Jumpbox (Arc-Dark palette) ─────────────────────────────
+# ── Openbox theme: Arc-Jumpbox ────────────────────────────────────────────────
+# Note: font declarations belong in rc.xml only, not themerc.
 mkdir -p ~/.themes/Arc-Jumpbox/openbox-3
 cat > ~/.themes/Arc-Jumpbox/openbox-3/themerc << 'EOF'
 border.width: 1
@@ -55,13 +59,11 @@ window.active.title.bg: flat solid
 window.active.title.bg.color: #2f343f
 window.active.label.text.color: #d3dae3
 window.active.label.bg: parentrelative
-window.active.label.text.font: Sans:bold:size=10
 
 window.inactive.title.bg: flat solid
 window.inactive.title.bg.color: #262a33
 window.inactive.label.text.color: #7c818c
 window.inactive.label.bg: parentrelative
-window.inactive.label.text.font: Sans:size=10
 
 window.active.button.unpressed.bg: flat solid
 window.active.button.unpressed.bg.color: #2f343f
@@ -201,8 +203,9 @@ cat > ~/.config/openbox/rc.xml << 'EOF'
     <popupPosition>Center</popupPosition>
   </resize>
 
+  <!-- Reserve space at the bottom for the tint2 taskbar -->
   <margins>
-    <top>0</top><bottom>0</bottom><left>0</left><right>0</right>
+    <top>0</top><bottom>40</bottom><left>0</left><right>0</right>
   </margins>
 
   <keyboard>
@@ -288,6 +291,9 @@ cat > ~/.config/openbox/menu.xml << 'EOF'
     <item label="VS Code">
       <action name="Execute"><command>code --no-sandbox --disable-gpu</command></action>
     </item>
+    <item label="Claude Desktop">
+      <action name="Execute"><command>claude-desktop --no-sandbox</command></action>
+    </item>
     <separator/>
     <item label="Reconfigure Openbox">
       <action name="Reconfigure"/>
@@ -296,12 +302,110 @@ cat > ~/.config/openbox/menu.xml << 'EOF'
 </openbox_menu>
 EOF
 
-# ── Openbox autostart ──────────────────────────────────────────────────────────
+# ── Openbox autostart: desktop background + taskbar only ──────────────────────
 cat > ~/.config/openbox/autostart << 'EOF'
 xsetroot -solid "#2b303b" &
-xterm &
-firefox &
-code --no-sandbox --disable-gpu &
+tint2 &
+EOF
+
+# ── tint2 taskbar config (Arc-Dark) ────────────────────────────────────────────
+mkdir -p ~/.config/tint2
+cat > ~/.config/tint2/tint2rc << 'EOF'
+# --- tint2 config: Arc-Dark taskbar ---
+
+# Panel
+panel_items = TSC
+panel_size = 100% 40
+panel_margin = 0 0
+panel_padding = 4 0 4
+panel_background_id = 1
+panel_position = bottom center horizontal
+panel_layer = top
+panel_monitor = all
+panel_shrink = 0
+wm_menu = 0
+panel_dock = 0
+panel_pivot_struts = 0
+mouse_effects = 1
+font_shadow = 0
+panel_window_name = tint2
+
+# Backgrounds
+rounded = 0
+border_width = 0
+background_color = #2f343f 100
+border_color = #2f343f 0
+
+rounded = 0
+border_width = 1
+background_color = #3d4251 100
+border_color = #5294e2 40
+
+rounded = 0
+border_width = 0
+background_color = #5294e2 90
+border_color = #5294e2 0
+
+# Taskbar
+taskbar_mode = single_desktop
+taskbar_hide_if_empty = 0
+taskbar_padding = 0 0 4
+taskbar_background_id = 0
+taskbar_active_background_id = 0
+taskbar_name = 0
+taskbar_hide_inactive_tasks = 0
+taskbar_always_show_all_desktop_tasks = 0
+taskbar_name_padding = 0 0
+taskbar_name_background_id = 0
+taskbar_name_active_background_id = 0
+taskbar_name_font_color = #d3dae3 100
+taskbar_name_active_font_color = #ffffff 100
+taskbar_distribute_size = 0
+taskbar_sort_order = none
+task_align = left
+
+# Tasks
+task_text = 1
+task_icon = 1
+task_centered = 1
+task_tooltip = 1
+urgent_nb_of_blink = 8
+task_width = 200
+task_height = 36
+task_padding = 6 3 6
+task_font = Sans 10
+task_font_color = #d3dae3 85
+task_icon_asb = 100 0 0
+task_background_id = 2
+task_active_background_id = 3
+task_urgent_background_id = 3
+task_iconified_background_id = 2
+task_active_font_color = #ffffff 100
+task_urgent_font_color = #f9a825 100
+mouse_left = toggle_iconify
+mouse_middle = close
+mouse_right = none
+mouse_scroll_up = prev_task
+mouse_scroll_down = next_task
+
+# Clock
+time1_format = %H:%M
+time1_font = Sans Bold 11
+time2_format = %Y-%m-%d
+time2_font = Sans 9
+clock_font_color = #d3dae3 100
+clock_padding = 8 0
+clock_background_id = 0
+clock_tooltip = %A %d %B %Y
+
+# System tray
+systray_padding = 4 4 4
+systray_background_id = 0
+systray_sort = ascending
+systray_icon_size = 22
+systray_icon_asb = 100 0 0
+systray_monitor = 1
+systray_name_filter =
 EOF
 
 # ── Xresources: dark xterm (Arc-Dark palette) ──────────────────────────────────
