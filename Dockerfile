@@ -70,8 +70,6 @@ RUN useradd -m -s /bin/bash "$USER" \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 6080
-
 USER $USER
 WORKDIR $HOME
 ENTRYPOINT ["/entrypoint.sh"]
