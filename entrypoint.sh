@@ -155,7 +155,7 @@ cat > "$XFCONF/xfce4-panel.xml" << XMLEOF
   <property name="plugins/plugin-6" type="string" value="launcher">
     <property name="show-label" type="bool" value="false"/>
     <property name="items" type="array">
-      <value type="string" value="$HOME/.local/share/applications/claude-desktop-safe.desktop"/>
+      <value type="string" value="claude-desktop-safe.desktop"/>
     </property>
   </property>
   <property name="plugins/plugin-7" type="string" value="launcher">
@@ -268,6 +268,20 @@ Type=Application
 Categories=Utility;
 StartupNotify=true
 EOF
+
+# ── Panel launcher directories ────────────────────────────────────────────────
+# XFCE4 launcher plugin resolves bare filenames against ~/.config/xfce4/panel/launcher-N/
+# Populate each launcher directory so the panel icons appear on startup.
+PANEL_CONF="$HOME/.config/xfce4/panel"
+mkdir -p "$PANEL_CONF/launcher-5" "$PANEL_CONF/launcher-6" "$PANEL_CONF/launcher-7" "$PANEL_CONF/launcher-8"
+[ -f /usr/share/applications/firefox.desktop ] && \
+    cp -f /usr/share/applications/firefox.desktop "$PANEL_CONF/launcher-5/firefox.desktop"
+cp -f "$HOME/.local/share/applications/claude-desktop-safe.desktop" \
+    "$PANEL_CONF/launcher-6/claude-desktop-safe.desktop" 2>/dev/null || true
+[ -f /usr/share/applications/xfce4-terminal.desktop ] && \
+    cp -f /usr/share/applications/xfce4-terminal.desktop "$PANEL_CONF/launcher-7/xfce4-terminal.desktop"
+[ -f /usr/share/applications/code.desktop ] && \
+    cp -f /usr/share/applications/code.desktop "$PANEL_CONF/launcher-8/code.desktop"
 
 # ── Dock behavior: disable Plank, use fixed XFCE panel only ──────────────────
 # Plank has continued to reposition in fullscreen; disable it for deterministic
