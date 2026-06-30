@@ -38,6 +38,8 @@ if [ -f "$PACKAGES_FILE" ] && [ -s "$PACKAGES_FILE" ]; then
             sudo apt-get install -y $PACKAGES
             echo "$PACKAGES_HASH" > "$PACKAGES_STAMP"
             echo "Done."
+        else
+          echo "Extra packages already satisfied; skipping install."
         fi
     fi
 fi
@@ -248,15 +250,112 @@ EOF
 chmod +x "$HOME/.local/bin/claude-desktop"
 ln -sf "$HOME/.local/bin/claude-desktop" "$HOME/.local/bin/clause-desktop"
 
+CLAUDE_ICON="claude-desktop"
+for CFILE in "$HOME/.local/share/applications"/*.desktop /usr/share/applications/*.desktop /usr/local/share/applications/*.desktop; do
+  [ -f "$CFILE" ] || continue
+  case "$(basename "$CFILE" | tr '[:upper:]' '[:lower:]')" in
+    *claude*.desktop)
+      CANDIDATE_ICON=$(grep -m1 '^Icon=' "$CFILE" | cut -d= -f2-)
+      if [ -n "$CANDIDATE_ICON" ]; then
+        CLAUDE_ICON="$CANDIDATE_ICON"
+        break
+      fi
+      ;;
+  esac
+done
+
 cat > "$HOME/.local/share/applications/claude-desktop-safe.desktop" << EOF
 [Desktop Entry]
 Name=Claude Desktop
 Comment=Claude Desktop (container-safe launcher)
 Exec=$HOME/.local/bin/claude-desktop %U
+Icon=$CLAUDE_ICON
 Terminal=false
 Type=Application
 Categories=Utility;
 StartupNotify=true
+EOF
+
+# ── Always write: Plank dock launchers/settings ──────────────────────────────
+# Written every start so dock behavior is deterministic and does not depend on
+# previous persisted state.
+mkdir -p "$HOME/.config/plank/dock1/launchers"
+
+make_dockitem() {
+  local ITEM_NAME="$1"; shift
+  local LAUNCHER_FILE="$HOME/.config/plank/dock1/launchers/${ITEM_NAME}.dockitem"
+  local APP_DIR
+  local DNAME
+
+  for DNAME in "$@"; do
+    for APP_DIR in "$HOME/.local/share/applications" /usr/share/applications /usr/local/share/applications; do
+      if [ -f "${APP_DIR}/${DNAME}.desktop" ]; then
+        printf '[PlankDockItemPreferences]\nLauncher=file://%s/%s.desktop\n' \
+          "$APP_DIR" "$DNAME" > "$LAUNCHER_FILE"
+        echo "$ITEM_NAME"
+        return 0
+      fi
+    done
+  done
+}
+
+make_dockitem_glob() {
+  local ITEM_NAME="$1"
+  local PATTERN="$2"
+  local LAUNCHER_FILE="$HOME/.config/plank/dock1/launchers/${ITEM_NAME}.dockitem"
+  local MATCH
+
+  MATCH=$(find "$HOME/.local/share/applications" /usr/share/applications /usr/local/share/applications \
+    -maxdepth 1 -type f -iname "$PATTERN" 2>/dev/null | sort | head -n1)
+  if [ -n "$MATCH" ]; then
+    printf '[PlankDockItemPreferences]\nLauncher=file://%s\n' "$MATCH" > "$LAUNCHER_FILE"
+    echo "$ITEM_NAME"
+    return 0
+  fi
+}
+
+DOCK_ITEMS=""
+append_item() { [ -n "$1" ] && DOCK_ITEMS="${DOCK_ITEMS:+${DOCK_ITEMS};;}${1}.dockitem"; }
+
+append_item "$(make_dockitem xfce4-terminal xfce4-terminal)"
+append_item "$(make_dockitem firefox firefox firefox-esr)"
+append_item "$(make_dockitem code code visual-studio-code)"
+append_item "$(make_dockitem claude-desktop claude-desktop-safe claude-desktop claude Claude)"
+if [ ! -f "$HOME/.config/plank/dock1/launchers/claude-desktop.dockitem" ]; then
+  append_item "$(make_dockitem_glob claude-desktop '*claude*.desktop')"
+fi
+
+cat > "$HOME/.config/plank/dock1/settings" << EOF
+[PlankDockPreferences]
+Monitor=
+HideMode=0
+HideDelay=0
+UnhideDelay=0
+PanelMode=true
+IconZoom=100
+ZoomEnabled=false
+Position=0
+IconSize=48
+Theme=Matte
+Alignment=1
+ItemsAlignment=1
+Offset=0
+CurrentWorkspaceOnly=false
+PinnedOnly=false
+AutoPinning=false
+LockItems=true
+PressureReveal=false
+DockItems=${DOCK_ITEMS}
+EOF
+
+mkdir -p "$HOME/.config/autostart"
+cat > "$HOME/.config/autostart/plank.desktop" << 'EOF'
+[Desktop Entry]
+Name=Plank
+Comment=App launcher dock
+Exec=plank
+Type=Application
+X-GNOME-Autostart-enabled=true
 EOF
 
 cat > "$HOME/.config/autostart/picom.desktop" << 'EOF'
@@ -283,91 +382,6 @@ ColorCursor=#5294e2
 ColorPalette=#1e1e1e;#f44747;#608b4e;#dcdcaa;#569cd6;#c678dd;#56b6c2;#d4d4d4;#808080;#f44747;#608b4e;#dcdcaa;#569cd6;#c678dd;#56b6c2;#ffffff
 MiscShowUnsafePasteDialog=FALSE
 ScrollingUnlimited=TRUE
-EOF
-
-    # Plank: left-side icon dock ─────────────────────────────────────────────
-    mkdir -p "$HOME/.config/plank/dock1/launchers"
-
-    # Helper: find first existing desktop launcher from known names and paths.
-    make_dockitem() {
-      local ITEM_NAME="$1"; shift
-      local LAUNCHER_FILE="$HOME/.config/plank/dock1/launchers/${ITEM_NAME}.dockitem"
-      local APP_DIR
-      local DNAME
-
-      for DNAME in "$@"; do
-        for APP_DIR in "$HOME/.local/share/applications" /usr/share/applications /usr/local/share/applications; do
-          if [ -f "${APP_DIR}/${DNAME}.desktop" ]; then
-            printf '[PlankDockItemPreferences]\nLauncher=file://%s/%s.desktop\n' \
-              "$APP_DIR" "$DNAME" > "$LAUNCHER_FILE"
-            echo "$ITEM_NAME"
-            return 0
-          fi
-        done
-      done
-    }
-
-    # Helper: find first desktop launcher matching a glob pattern.
-    make_dockitem_glob() {
-      local ITEM_NAME="$1"
-      local PATTERN="$2"
-      local LAUNCHER_FILE="$HOME/.config/plank/dock1/launchers/${ITEM_NAME}.dockitem"
-      local MATCH
-
-      MATCH=$(find "$HOME/.local/share/applications" /usr/share/applications /usr/local/share/applications \
-        -maxdepth 1 -type f -iname "$PATTERN" 2>/dev/null | sort | head -n1)
-      if [ -n "$MATCH" ]; then
-        printf '[PlankDockItemPreferences]\nLauncher=file://%s\n' "$MATCH" > "$LAUNCHER_FILE"
-        echo "$ITEM_NAME"
-        return 0
-      fi
-    }
-
-    DOCK_ITEMS=""
-    append_item() { [ -n "$1" ] && DOCK_ITEMS="${DOCK_ITEMS:+${DOCK_ITEMS};;}${1}.dockitem"; }
-
-    append_item "$(make_dockitem xfce4-terminal xfce4-terminal)"
-    append_item "$(make_dockitem firefox firefox firefox-esr)"
-    append_item "$(make_dockitem code code visual-studio-code)"
-    append_item "$(make_dockitem claude-desktop claude-desktop-safe claude-desktop claude Claude)"
-    if [ ! -f "$HOME/.config/plank/dock1/launchers/claude-desktop.dockitem" ]; then
-      append_item "$(make_dockitem_glob claude-desktop '*claude*.desktop')"
-    fi
-
-    cat > "$HOME/.config/plank/dock1/settings" << EOF
-[PlankDockPreferences]
-Monitor=
-HideMode=0
-HideDelay=0
-UnhideDelay=0
-PanelMode=true
-IconZoom=100
-ZoomEnabled=false
-Position=0
-IconSize=48
-Theme=Matte
-Alignment=1
-ItemsAlignment=1
-Offset=0
-CurrentWorkspaceOnly=false
-PinnedOnly=false
-AutoPinning=false
-LockItems=true
-PressureReveal=false
-DockItems=${DOCK_ITEMS}
-EOF
-
-    # Autostart: plank (dock)
-    # Note: picom.desktop is written in the always-write section above.
-    mkdir -p "$HOME/.config/autostart"
-
-    cat > "$HOME/.config/autostart/plank.desktop" << 'EOF'
-[Desktop Entry]
-Name=Plank
-Comment=App launcher dock
-Exec=plank
-Type=Application
-X-GNOME-Autostart-enabled=true
 EOF
 
     echo "$CONFIG_VERSION" > "$XFCE4_CONF/.jumpbox-version"
