@@ -62,9 +62,11 @@ The container runs with an internal home directory. Data inside the container do
 
 | Variable | Default | Description |
 |---|---|---|
-| `VNC_PASSWORD` | `changeme` | Password required to connect via noVNC |
+| `VNC_PASSWORD` | `changeme` | Password required to connect via noVNC (max 8 characters) |
 | `VNC_GEOMETRY` | `1920x1080` | Desktop resolution |
 | `NOVNC_PORT` | `6080` | Host port the web interface is exposed on |
+
+Note: VNC authentication uses only the first 8 characters of `VNC_PASSWORD`.
 
 ## Extra packages
 
