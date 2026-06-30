@@ -56,7 +56,7 @@ docker compose down
 
 ## Persistence
 
-The container's home directory is mounted to `./data/home`. VS Code settings, extensions, Firefox profiles, and any files saved in the home directory survive container restarts and rebuilds.
+The container runs with an internal home directory. Data inside the container does not persist across image rebuilds or container recreation unless you add your own bind mounts.
 
 ## Configuration
 
@@ -68,18 +68,13 @@ The container's home directory is mounted to `./data/home`. VS Code settings, ex
 
 ## Extra packages
 
-Add apt package names (one per line) to `data/home/packages.txt`. They install at image build time.
+Add extra apt packages directly in the main `apt-get install -y` list in `Dockerfile`.
 
-After editing `packages.txt`, rebuild the image:
+After editing `Dockerfile`, rebuild and recreate:
 
 ```bash
 docker compose build --no-cache
 docker compose up -d --force-recreate
-```
-
-```
-openssh-server
-htop
 ```
 
 ## Deploying with Portainer
@@ -103,16 +98,10 @@ services:
     shm_size: '2gb'
     ports:
       - "${NOVNC_PORT:-6080}:6080"
-    volumes:
-      - /opt/jumpbox/data/home:/home/user
     environment:
       - VNC_PASSWORD=${VNC_PASSWORD:-changeme}
       - VNC_GEOMETRY=${VNC_GEOMETRY:-1920x1080}
 ```
-
-> Replace `/opt/jumpbox/data/home` with the real absolute path on your Docker host.
->
-> If you use `packages.txt`, rebuild the image on the Docker host after editing it so the package changes are included.
 
 ## Adding apps to the dock
 

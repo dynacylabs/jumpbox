@@ -3,12 +3,6 @@
 .gitignore
 .vscode
 
-# Runtime/persistent data should not be part of image build context
-# (contains caches, keyrings, sockets, and large profiles).
-# Keep only packages.txt so extra apt packages can be installed at build time.
-data/home/**
-!data/home/packages.txt
-
 # Explicit socket patterns in case other paths are added later
 **/*.sock
 **/S.gpg-agent*
