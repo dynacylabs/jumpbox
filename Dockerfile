@@ -47,6 +47,20 @@ RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc \
     && apt-get install -y code \
     && rm -rf /var/lib/apt/lists/*
 
+# ── Claude Desktop (amd64 + arm64) ────────────────────────────────────────────
+RUN ARCH=$(dpkg --print-architecture) \
+    && case "$ARCH" in \
+         amd64) ARCH_LABEL="x64" ;; \
+         arm64) ARCH_LABEL="arm64" ;; \
+         *) echo "Unsupported arch: $ARCH" && exit 1 ;; \
+       esac \
+    && apt-get update \
+    && wget -qO /tmp/claude-desktop.deb \
+         "https://storage.googleapis.com/osprey-downloads-c02f6a0d-347c-492b-a752-3e0651722e97/nest-linux-${ARCH_LABEL}/claude-desktop_latest_${ARCH}.deb" \
+    && apt-get install -y /tmp/claude-desktop.deb \
+    && rm -f /tmp/claude-desktop.deb \
+    && rm -rf /var/lib/apt/lists/*
+
 # ── Non-root user ──────────────────────────────────────────────────────────────
 RUN useradd -m -s /bin/bash "$USER" \
     && usermod -aG sudo "$USER" \

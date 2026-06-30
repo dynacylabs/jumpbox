@@ -10,17 +10,35 @@ fi
 PACKAGES_FILE="$HOME/packages.txt"
 PACKAGES_STAMP="$HOME/.packages.stamp"
 if [ -f "$PACKAGES_FILE" ] && [ -s "$PACKAGES_FILE" ]; then
-    PACKAGES_HASH=$(md5sum "$PACKAGES_FILE" | cut -d' ' -f1)
-    LAST_HASH=""
-    [ -f "$PACKAGES_STAMP" ] && LAST_HASH=$(cat "$PACKAGES_STAMP")
-    if [ "$PACKAGES_HASH" != "$LAST_HASH" ]; then
-        echo "packages.txt changed — installing packages..."
-        PACKAGES=$(grep -v '^\s*#' "$PACKAGES_FILE" | grep -v '^\s*$' | tr '\n' ' ')
-        sudo apt-get update -qq
-        # shellcheck disable=SC2086
-        sudo apt-get install -y $PACKAGES
-        echo "$PACKAGES_HASH" > "$PACKAGES_STAMP"
-        echo "Done."
+    # Strip comments, blank lines, and Windows carriage returns
+    PACKAGES=$(grep -v '^\s*#' "$PACKAGES_FILE" | grep -v '^\s*$' | tr -d '\r' | tr '\n' ' ')
+    if [ -n "$(printf '%s' "$PACKAGES" | tr -d ' ')" ]; then
+        PACKAGES_HASH=$(md5sum "$PACKAGES_FILE" | cut -d' ' -f1)
+        LAST_HASH=""
+        [ -f "$PACKAGES_STAMP" ] && LAST_HASH=$(cat "$PACKAGES_STAMP")
+
+        # Reinstall if the file changed OR any package is missing from this container
+        # (missing happens when the container is recreated from a fresh image layer)
+        NEEDS_INSTALL=false
+        if [ "$PACKAGES_HASH" != "$LAST_HASH" ]; then
+            NEEDS_INSTALL=true
+        else
+            for PKG in $PACKAGES; do
+                if ! dpkg -s "$PKG" >/dev/null 2>&1; then
+                    NEEDS_INSTALL=true
+                    break
+                fi
+            done
+        fi
+
+        if [ "$NEEDS_INSTALL" = true ]; then
+            echo "Installing packages: $PACKAGES"
+            sudo apt-get update -qq
+            # shellcheck disable=SC2086
+            sudo apt-get install -y $PACKAGES
+            echo "$PACKAGES_HASH" > "$PACKAGES_STAMP"
+            echo "Done."
+        fi
     fi
 fi
 
@@ -47,7 +65,7 @@ PANEL_Y="$((SCREEN_H - PANEL_H))"
 
 # ── XFCE4 config ───────────────────────────────────────────────────────────────
 # CONFIG_VERSION: bump this to force a re-init on all existing containers.
-CONFIG_VERSION=4
+CONFIG_VERSION=5
 XFCE4_CONF="$HOME/.config/xfce4"
 XFCONF="$XFCE4_CONF/xfconf/xfce-perchannel-xml"
 STORED_VER=$(cat "$XFCE4_CONF/.jumpbox-version" 2>/dev/null || echo 0)
@@ -253,13 +271,14 @@ EOF
     append_item "$(make_dockitem xfce4-terminal xfce4-terminal)"
     append_item "$(make_dockitem firefox firefox firefox-esr)"
     append_item "$(make_dockitem code code visual-studio-code)"
+    append_item "$(make_dockitem claude-desktop claude-desktop)"
 
     cat > "$HOME/.config/plank/dock1/settings" << EOF
 [PlankDockPreferences]
 Monitor=
-HideMode=1
-HideDelay=300
-UnhideDelay=100
+HideMode=0
+HideDelay=0
+UnhideDelay=0
 PanelMode=false
 IconZoom=130
 ZoomEnabled=true

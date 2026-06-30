@@ -1,6 +1,6 @@
 # jumpbox
 
-A minimal browser-accessible desktop in a Docker container. Runs Firefox, VS Code, and a terminal — nothing else — accessible from any browser via noVNC.
+A browser-accessible desktop in a Docker container. Runs Firefox, VS Code, Claude Desktop, and a terminal — accessible from any browser via noVNC.
 
 Works on both **amd64** (Linux/Windows) and **arm64** (Apple Silicon).
 
@@ -8,11 +8,13 @@ Works on both **amd64** (Linux/Windows) and **arm64** (Apple Silicon).
 
 | Component | Purpose |
 |---|---|
-| Ubuntu 24.04 | Base image (minimal rootfs, no desktop environment) |
-| Openbox | Bare window manager — just enough to manage windows |
+| Ubuntu 24.04 | Base OS |
+| XFCE4 | Desktop environment (panel, window manager, compositor) |
+| xfce4-terminal | Terminal emulator |
+| Plank | Application dock |
 | Firefox | Web browser (native `.deb` via mozillateam PPA) |
 | VS Code | Editor |
-| xterm | Terminal |
+| Claude Desktop | AI assistant |
 | TigerVNC | X11 VNC server |
 | noVNC + websockify | Browser-based VNC client, no plugin needed |
 
@@ -22,16 +24,14 @@ Works on both **amd64** (Linux/Windows) and **arm64** (Apple Silicon).
 
 ## Setup
 
+Create a `.env` file with your password:
+
 ```bash
-cp .env.example .env
-```
-
-Edit `.env` and set a real password:
-
-```
+cat > .env << 'EOF'
 VNC_PASSWORD=yourpassword
 VNC_GEOMETRY=1920x1080
 NOVNC_PORT=6080
+EOF
 ```
 
 ## Usage
@@ -65,3 +65,78 @@ The container's home directory is mounted to `./data/home`. VS Code settings, ex
 | `VNC_PASSWORD` | `changeme` | Password required to connect via noVNC |
 | `VNC_GEOMETRY` | `1920x1080` | Desktop resolution |
 | `NOVNC_PORT` | `6080` | Host port the web interface is exposed on |
+
+## Extra packages
+
+Add apt package names (one per line) to `data/home/packages.txt`. They install automatically on the next container start whenever the list changes or a package is missing.
+
+```
+openssh-server
+htop
+```
+
+## Deploying with Portainer
+
+Portainer cannot build images from source — build and tag the image on the Docker host first:
+
+```bash
+git clone https://github.com/dynacylabs/jumpbox.git
+cd jumpbox
+docker build -t jumpbox:latest .
+```
+
+In Portainer → **Stacks → Add stack**, paste the following and set the environment variables in the panel below the editor:
+
+```yaml
+services:
+  jumpbox:
+    image: jumpbox:latest
+    container_name: jumpbox
+    restart: unless-stopped
+    shm_size: '2gb'
+    ports:
+      - "${NOVNC_PORT:-6080}:6080"
+    volumes:
+      - /opt/jumpbox/data/home:/home/user
+    environment:
+      - VNC_PASSWORD=${VNC_PASSWORD:-changeme}
+      - VNC_GEOMETRY=${VNC_GEOMETRY:-1920x1080}
+```
+
+> Replace `/opt/jumpbox/data/home` with the real absolute path on your Docker host. Create it and copy `data/home/packages.txt` there before deploying.
+
+## Adding apps to the dock
+
+To pin a custom program (e.g. one you launch with `./program`) to the Plank dock:
+
+**1. Create a `.desktop` file** — use the full absolute path to the binary:
+
+```bash
+mkdir -p ~/.local/share/applications
+cat > ~/.local/share/applications/myapp.desktop << 'EOF'
+[Desktop Entry]
+Name=My App
+Comment=Short description
+Exec=/full/path/to/program
+Icon=application-x-executable
+Type=Application
+Categories=Utility;
+EOF
+```
+
+**2. Create a dockitem** pointing to that file:
+
+```bash
+cat > ~/.config/plank/dock1/launchers/myapp.dockitem << 'EOF'
+[PlankDockItemPreferences]
+Launcher=file:///home/user/.local/share/applications/myapp.desktop
+EOF
+```
+
+**3. Reload Plank:**
+
+```bash
+pkill plank && plank &
+```
+
+> **Tip:** If the app is already running, right-click its dock icon and choose **Keep in Dock** — no files needed.
