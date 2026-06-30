@@ -103,97 +103,94 @@ cat > "$XFCONF/xfce4-desktop.xml" << 'XMLEOF'
 XMLEOF
 
 # ── Always write: xfce4-panel.xml ─────────────────────────────────────────────
-# Uses ONLY built-in plugins (no launcher file dependencies that can crash panel).
 # Position is computed from VNC_GEOMETRY so the panel is always at the bottom.
-# Plugin layout: [Apps menu] ... [Tasklist] ... [Systray] [Clock]
+# Plugin layout: [Apps] [Firefox] [Claude] [Terminal] [VSCode] [Tasklist] [Tray] [Clock]
+# IMPORTANT: panel-1 sub-properties must be NESTED INSIDE the panels array element,
+# not in a separate <panels type="empty"> sibling — xfconf cannot merge the two.
 cat > "$XFCONF/xfce4-panel.xml" << XMLEOF
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-panel" version="1.0">
   <property name="configver" type="int" value="2"/>
   <property name="panels" type="array">
     <value type="int" value="1"/>
-  </property>
-  <property name="panels/panel-1" type="empty">
-    <property name="position"         type="string" value="p=8;x=${PANEL_X};y=${PANEL_Y}"/>
-    <property name="length"           type="uint"   value="100"/>
-    <property name="position-locked"  type="bool"   value="true"/>
-    <property name="autohide-behavior" type="uint"  value="0"/>
-    <property name="disable-struts"   type="bool"   value="false"/>
-    <property name="size"             type="uint"   value="${PANEL_H}"/>
-    <property name="nrows"            type="uint"   value="1"/>
-    <property name="background-style" type="uint"   value="1"/>
-    <property name="background-rgba"  type="array">
-      <value type="double" value="0.118"/>
-      <value type="double" value="0.118"/>
-      <value type="double" value="0.118"/>
-      <value type="double" value="1.0"/>
-    </property>
-    <property name="plugin-ids" type="array">
-      <value type="int" value="1"/>
-      <value type="int" value="5"/>
-      <value type="int" value="6"/>
-      <value type="int" value="7"/>
-      <value type="int" value="8"/>
-      <value type="int" value="2"/>
-      <value type="int" value="3"/>
-      <value type="int" value="4"/>
-    </property>
-  </property>
-  <!-- Whisker Menu: searchable application launcher -->
-  <property name="plugins/plugin-1" type="string" value="whiskermenu">
-    <property name="show-button-title" type="bool"   value="true"/>
-    <property name="button-title"      type="string" value="Apps"/>
-    <property name="show-button-icon"  type="bool"   value="true"/>
-  </property>
-  <!-- Launchers: Firefox, Claude Desktop, Terminal, VS Code -->
-  <property name="plugins/plugin-5" type="string" value="launcher">
-    <property name="show-label" type="bool" value="false"/>
-    <property name="items" type="array">
-      <value type="string" value="firefox.desktop"/>
+    <property name="panel-1" type="empty">
+      <property name="position"          type="string" value="p=8;x=${PANEL_X};y=${PANEL_Y}"/>
+      <property name="length"            type="uint"   value="100"/>
+      <property name="position-locked"   type="bool"   value="true"/>
+      <property name="autohide-behavior" type="uint"   value="0"/>
+      <property name="size"              type="uint"   value="${PANEL_H}"/>
+      <property name="nrows"             type="uint"   value="1"/>
+      <property name="background-style"  type="uint"   value="1"/>
+      <property name="background-rgba"   type="array">
+        <value type="double" value="0.118"/>
+        <value type="double" value="0.118"/>
+        <value type="double" value="0.118"/>
+        <value type="double" value="1.0"/>
+      </property>
+      <property name="plugin-ids" type="array">
+        <value type="int" value="1"/>
+        <value type="int" value="5"/>
+        <value type="int" value="6"/>
+        <value type="int" value="7"/>
+        <value type="int" value="8"/>
+        <value type="int" value="2"/>
+        <value type="int" value="3"/>
+        <value type="int" value="4"/>
+      </property>
     </property>
   </property>
-  <property name="plugins/plugin-6" type="string" value="launcher">
-    <property name="show-label" type="bool" value="false"/>
-    <property name="items" type="array">
-      <value type="string" value="claude-desktop-safe.desktop"/>
+  <property name="plugins" type="empty">
+    <property name="plugin-1" type="string" value="whiskermenu">
+      <property name="show-button-title" type="bool"   value="true"/>
+      <property name="button-title"      type="string" value="Apps"/>
+      <property name="show-button-icon"  type="bool"   value="true"/>
     </property>
-  </property>
-  <property name="plugins/plugin-7" type="string" value="launcher">
-    <property name="show-label" type="bool" value="false"/>
-    <property name="items" type="array">
-      <value type="string" value="xfce4-terminal.desktop"/>
+    <property name="plugin-5" type="string" value="launcher">
+      <property name="show-label" type="bool" value="false"/>
+      <property name="items" type="array">
+        <value type="string" value="firefox.desktop"/>
+      </property>
     </property>
-  </property>
-  <property name="plugins/plugin-8" type="string" value="launcher">
-    <property name="show-label" type="bool" value="false"/>
-    <property name="items" type="array">
-      <value type="string" value="code.desktop"/>
+    <property name="plugin-6" type="string" value="launcher">
+      <property name="show-label" type="bool" value="false"/>
+      <property name="items" type="array">
+        <value type="string" value="claude-desktop-safe.desktop"/>
+      </property>
     </property>
-  </property>
-  <!-- Tasklist: all open/minimized windows, expands to fill available space -->
-  <property name="plugins/plugin-2" type="string" value="tasklist">
-    <property name="show-labels"            type="bool"   value="true"/>
-    <property name="grouping"               type="bool"   value="false"/>
-    <property name="expand"                 type="bool"   value="true"/>
-    <property name="include-all-workspaces" type="bool"   value="true"/>
-    <property name="flat-buttons"           type="bool"   value="true"/>
-    <property name="show-handle"            type="bool"   value="false"/>
-    <property name="show-tooltips"          type="bool"   value="true"/>
-    <property name="show-wireframes"        type="bool"   value="false"/>
-    <property name="middle-click"           type="uint"   value="0"/>
-    <property name="window-scrolling"       type="bool"   value="true"/>
-  </property>
-  <!-- System tray -->
-  <property name="plugins/plugin-3" type="string" value="systray">
-    <property name="size-max"          type="uint"   value="22"/>
-    <property name="show-frame"        type="bool"   value="false"/>
-  </property>
-  <!-- Clock -->
-  <property name="plugins/plugin-4" type="string" value="clock">
-    <property name="mode"                  type="uint"   value="2"/>
-    <property name="digital-time-format"   type="string" value="%H:%M"/>
-    <property name="digital-date-format"   type="string" value="%a %d %b"/>
-    <property name="show-seconds"          type="bool"   value="false"/>
+    <property name="plugin-7" type="string" value="launcher">
+      <property name="show-label" type="bool" value="false"/>
+      <property name="items" type="array">
+        <value type="string" value="xfce4-terminal.desktop"/>
+      </property>
+    </property>
+    <property name="plugin-8" type="string" value="launcher">
+      <property name="show-label" type="bool" value="false"/>
+      <property name="items" type="array">
+        <value type="string" value="code.desktop"/>
+      </property>
+    </property>
+    <property name="plugin-2" type="string" value="tasklist">
+      <property name="show-labels"            type="bool"   value="true"/>
+      <property name="grouping"               type="bool"   value="false"/>
+      <property name="expand"                 type="bool"   value="true"/>
+      <property name="include-all-workspaces" type="bool"   value="true"/>
+      <property name="flat-buttons"           type="bool"   value="true"/>
+      <property name="show-handle"            type="bool"   value="false"/>
+      <property name="show-tooltips"          type="bool"   value="true"/>
+      <property name="show-wireframes"        type="bool"   value="false"/>
+      <property name="middle-click"           type="uint"   value="0"/>
+      <property name="window-scrolling"       type="bool"   value="true"/>
+    </property>
+    <property name="plugin-3" type="string" value="systray">
+      <property name="size-max"   type="uint"  value="22"/>
+      <property name="show-frame" type="bool"  value="false"/>
+    </property>
+    <property name="plugin-4" type="string" value="clock">
+      <property name="mode"                type="uint"   value="2"/>
+      <property name="digital-time-format" type="string" value="%H:%M"/>
+      <property name="digital-date-format" type="string" value="%a %d %b"/>
+      <property name="show-seconds"        type="bool"   value="false"/>
+    </property>
   </property>
 </channel>
 XMLEOF
