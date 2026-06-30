@@ -135,7 +135,6 @@ cat > "$XFCONF/xfce4-panel.xml" << XMLEOF
         <value type="int" value="8"/>
         <value type="int" value="2"/>
         <value type="int" value="3"/>
-        <value type="int" value="4"/>
       </property>
     </property>
   </property>
@@ -184,12 +183,6 @@ cat > "$XFCONF/xfce4-panel.xml" << XMLEOF
     <property name="plugin-3" type="string" value="systray">
       <property name="size-max"   type="uint"  value="22"/>
       <property name="show-frame" type="bool"  value="false"/>
-    </property>
-    <property name="plugin-4" type="string" value="clock">
-      <property name="mode"                type="uint"   value="2"/>
-      <property name="digital-time-format" type="string" value="%H:%M"/>
-      <property name="digital-date-format" type="string" value="%a %d %b"/>
-      <property name="show-seconds"        type="bool"   value="false"/>
     </property>
   </property>
 </channel>
