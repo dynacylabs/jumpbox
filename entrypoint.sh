@@ -47,7 +47,7 @@ PANEL_Y="$((SCREEN_H - PANEL_H))"
 
 # ── XFCE4 config ───────────────────────────────────────────────────────────────
 # CONFIG_VERSION: bump this to force a re-init on all existing containers.
-CONFIG_VERSION=3
+CONFIG_VERSION=4
 XFCE4_CONF="$HOME/.config/xfce4"
 XFCONF="$XFCE4_CONF/xfconf/xfce-perchannel-xml"
 STORED_VER=$(cat "$XFCE4_CONF/.jumpbox-version" 2>/dev/null || echo 0)
@@ -151,19 +151,24 @@ cat > "$XFCONF/xfce4-panel.xml" << XMLEOF
       <value type="int" value="4"/>
     </property>
   </property>
-  <!-- Applications menu button (shows all installed apps with icons) -->
-  <property name="plugins/plugin-1" type="string" value="applicationsmenu">
+  <!-- Whisker Menu: searchable application launcher -->
+  <property name="plugins/plugin-1" type="string" value="whiskermenu">
     <property name="show-button-title" type="bool"   value="true"/>
     <property name="button-title"      type="string" value="Apps"/>
-    <property name="show-generic-names" type="bool"  value="false"/>
+    <property name="show-button-icon"  type="bool"   value="true"/>
   </property>
-  <!-- Tasklist: running windows, expands to fill available space -->
+  <!-- Tasklist: all open/minimized windows, expands to fill available space -->
   <property name="plugins/plugin-2" type="string" value="tasklist">
-    <property name="show-labels"       type="bool"   value="true"/>
-    <property name="grouping"          type="bool"   value="false"/>
-    <property name="expand"            type="bool"   value="true"/>
-    <property name="include-all-workspaces" type="bool" value="true"/>
-    <property name="flat-buttons"      type="bool"   value="false"/>
+    <property name="show-labels"            type="bool"   value="true"/>
+    <property name="grouping"               type="bool"   value="false"/>
+    <property name="expand"                 type="bool"   value="true"/>
+    <property name="include-all-workspaces" type="bool"   value="true"/>
+    <property name="flat-buttons"           type="bool"   value="true"/>
+    <property name="show-handle"            type="bool"   value="false"/>
+    <property name="show-tooltips"          type="bool"   value="true"/>
+    <property name="show-wireframes"        type="bool"   value="false"/>
+    <property name="middle-click"           type="uint"   value="0"/>
+    <property name="window-scrolling"       type="bool"   value="true"/>
   </property>
   <!-- System tray -->
   <property name="plugins/plugin-3" type="string" value="systray">
@@ -194,6 +199,18 @@ cat > ~/.gtkrc-2.0 << 'EOF'
 gtk-theme-name="Arc-Dark"
 gtk-icon-theme-name="Papirus-Dark"
 gtk-font-name="Sans 10"
+EOF
+
+# ── Always write: autostart entries ───────────────────────────────────────────
+# Written every start so config changes take effect on existing containers.
+mkdir -p "$HOME/.config/autostart"
+cat > "$HOME/.config/autostart/picom.desktop" << 'EOF'
+[Desktop Entry]
+Name=picom
+Comment=Compositor — rounded corners, no shadows
+Exec=picom --backend xrender --corner-radius 8 --no-fading-openclose --no-shadow
+Type=Application
+X-GNOME-Autostart-enabled=true
 EOF
 
 # ── First-run / version-upgrade: write config that persists across restarts ───
@@ -252,17 +269,9 @@ Theme=Matte
 DockItems=${DOCK_ITEMS}
 EOF
 
-    # Autostart: picom (rounded corners) and plank (dock)
+    # Autostart: plank (dock)
+    # Note: picom.desktop is written in the always-write section above.
     mkdir -p "$HOME/.config/autostart"
-
-    cat > "$HOME/.config/autostart/picom.desktop" << 'EOF'
-[Desktop Entry]
-Name=picom
-Comment=Compositor — rounded corners only
-Exec=picom --backend xrender --corner-radius 8 --no-fading-openclose
-Type=Application
-X-GNOME-Autostart-enabled=true
-EOF
 
     cat > "$HOME/.config/autostart/plank.desktop" << 'EOF'
 [Desktop Entry]
