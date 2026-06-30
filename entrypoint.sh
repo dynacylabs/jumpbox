@@ -130,6 +130,10 @@ cat > "$XFCONF/xfce4-panel.xml" << XMLEOF
     </property>
     <property name="plugin-ids" type="array">
       <value type="int" value="1"/>
+      <value type="int" value="5"/>
+      <value type="int" value="6"/>
+      <value type="int" value="7"/>
+      <value type="int" value="8"/>
       <value type="int" value="2"/>
       <value type="int" value="3"/>
       <value type="int" value="4"/>
@@ -140,6 +144,31 @@ cat > "$XFCONF/xfce4-panel.xml" << XMLEOF
     <property name="show-button-title" type="bool"   value="true"/>
     <property name="button-title"      type="string" value="Apps"/>
     <property name="show-button-icon"  type="bool"   value="true"/>
+  </property>
+  <!-- Launchers: Firefox, Claude Desktop, Terminal, VS Code -->
+  <property name="plugins/plugin-5" type="string" value="launcher">
+    <property name="show-label" type="bool" value="false"/>
+    <property name="items" type="array">
+      <value type="string" value="firefox.desktop"/>
+    </property>
+  </property>
+  <property name="plugins/plugin-6" type="string" value="launcher">
+    <property name="show-label" type="bool" value="false"/>
+    <property name="items" type="array">
+      <value type="string" value="$HOME/.local/share/applications/claude-desktop-safe.desktop"/>
+    </property>
+  </property>
+  <property name="plugins/plugin-7" type="string" value="launcher">
+    <property name="show-label" type="bool" value="false"/>
+    <property name="items" type="array">
+      <value type="string" value="xfce4-terminal.desktop"/>
+    </property>
+  </property>
+  <property name="plugins/plugin-8" type="string" value="launcher">
+    <property name="show-label" type="bool" value="false"/>
+    <property name="items" type="array">
+      <value type="string" value="code.desktop"/>
+    </property>
   </property>
   <!-- Tasklist: all open/minimized windows, expands to fill available space -->
   <property name="plugins/plugin-2" type="string" value="tasklist">
