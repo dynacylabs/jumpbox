@@ -65,7 +65,7 @@ PANEL_Y="$((SCREEN_H - PANEL_H))"
 
 # ── XFCE4 config ───────────────────────────────────────────────────────────────
 # CONFIG_VERSION: bump this to force a re-init on all existing containers.
-CONFIG_VERSION=6
+CONFIG_VERSION=7
 XFCE4_CONF="$HOME/.config/xfce4"
 XFCONF="$XFCE4_CONF/xfconf/xfce-perchannel-xml"
 STORED_VER=$(cat "$XFCE4_CONF/.jumpbox-version" 2>/dev/null || echo 0)
@@ -222,6 +222,43 @@ EOF
 # ── Always write: autostart entries ───────────────────────────────────────────
 # Written every start so config changes take effect on existing containers.
 mkdir -p "$HOME/.config/autostart"
+
+# Claude Desktop wrapper: safer Electron flags for containerized X11/VNC sessions.
+mkdir -p "$HOME/.local/bin" "$HOME/.local/share/applications"
+cat > "$HOME/.local/bin/claude-desktop" << 'EOF'
+#!/bin/bash
+set -e
+
+if [ -x /usr/bin/claude-desktop ]; then
+  BIN=/usr/bin/claude-desktop
+elif [ -x /usr/local/bin/claude-desktop ]; then
+  BIN=/usr/local/bin/claude-desktop
+else
+  echo "claude-desktop binary not found" >&2
+  exit 127
+fi
+
+exec "$BIN" \
+  --no-sandbox \
+  --disable-gpu \
+  --disable-dev-shm-usage \
+  --password-store=basic \
+  "$@"
+EOF
+chmod +x "$HOME/.local/bin/claude-desktop"
+ln -sf "$HOME/.local/bin/claude-desktop" "$HOME/.local/bin/clause-desktop"
+
+cat > "$HOME/.local/share/applications/claude-desktop-safe.desktop" << EOF
+[Desktop Entry]
+Name=Claude Desktop
+Comment=Claude Desktop (container-safe launcher)
+Exec=$HOME/.local/bin/claude-desktop %U
+Terminal=false
+Type=Application
+Categories=Utility;
+StartupNotify=true
+EOF
+
 cat > "$HOME/.config/autostart/picom.desktop" << 'EOF'
 [Desktop Entry]
 Name=picom
@@ -259,7 +296,7 @@ EOF
       local DNAME
 
       for DNAME in "$@"; do
-        for APP_DIR in /usr/share/applications /usr/local/share/applications; do
+        for APP_DIR in "$HOME/.local/share/applications" /usr/share/applications /usr/local/share/applications; do
           if [ -f "${APP_DIR}/${DNAME}.desktop" ]; then
             printf '[PlankDockItemPreferences]\nLauncher=file://%s/%s.desktop\n' \
               "$APP_DIR" "$DNAME" > "$LAUNCHER_FILE"
@@ -277,7 +314,7 @@ EOF
       local LAUNCHER_FILE="$HOME/.config/plank/dock1/launchers/${ITEM_NAME}.dockitem"
       local MATCH
 
-      MATCH=$(find /usr/share/applications /usr/local/share/applications \
+      MATCH=$(find "$HOME/.local/share/applications" /usr/share/applications /usr/local/share/applications \
         -maxdepth 1 -type f -iname "$PATTERN" 2>/dev/null | sort | head -n1)
       if [ -n "$MATCH" ]; then
         printf '[PlankDockItemPreferences]\nLauncher=file://%s\n' "$MATCH" > "$LAUNCHER_FILE"
@@ -292,7 +329,7 @@ EOF
     append_item "$(make_dockitem xfce4-terminal xfce4-terminal)"
     append_item "$(make_dockitem firefox firefox firefox-esr)"
     append_item "$(make_dockitem code code visual-studio-code)"
-    append_item "$(make_dockitem claude-desktop claude-desktop claude Claude)"
+    append_item "$(make_dockitem claude-desktop claude-desktop-safe claude-desktop claude Claude)"
     if [ ! -f "$HOME/.config/plank/dock1/launchers/claude-desktop.dockitem" ]; then
       append_item "$(make_dockitem_glob claude-desktop '*claude*.desktop')"
     fi
@@ -304,11 +341,19 @@ HideMode=0
 HideDelay=0
 UnhideDelay=0
 PanelMode=true
-IconZoom=130
-ZoomEnabled=true
+IconZoom=100
+ZoomEnabled=false
 Position=0
 IconSize=48
 Theme=Matte
+Alignment=1
+ItemsAlignment=1
+Offset=0
+CurrentWorkspaceOnly=false
+PinnedOnly=false
+AutoPinning=false
+LockItems=true
+PressureReveal=false
 DockItems=${DOCK_ITEMS}
 EOF
 
