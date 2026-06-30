@@ -68,7 +68,14 @@ The container's home directory is mounted to `./data/home`. VS Code settings, ex
 
 ## Extra packages
 
-Add apt package names (one per line) to `data/home/packages.txt`. They install automatically on the next container start whenever the list changes or a package is missing.
+Add apt package names (one per line) to `data/home/packages.txt`. They install at image build time.
+
+After editing `packages.txt`, rebuild the image:
+
+```bash
+docker compose build --no-cache
+docker compose up -d --force-recreate
+```
 
 ```
 openssh-server
@@ -103,7 +110,9 @@ services:
       - VNC_GEOMETRY=${VNC_GEOMETRY:-1920x1080}
 ```
 
-> Replace `/opt/jumpbox/data/home` with the real absolute path on your Docker host. Create it and copy `data/home/packages.txt` there before deploying.
+> Replace `/opt/jumpbox/data/home` with the real absolute path on your Docker host.
+>
+> If you use `packages.txt`, rebuild the image on the Docker host after editing it so the package changes are included.
 
 ## Adding apps to the dock
 

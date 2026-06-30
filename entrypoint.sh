@@ -6,44 +6,6 @@ if [ ! -w "$HOME" ]; then
     sudo chown -R "$USER:$USER" "$HOME"
 fi
 
-# ── Extra packages (~/packages.txt) ────────────────────────────────────────────
-PACKAGES_FILE="$HOME/packages.txt"
-PACKAGES_STAMP="$HOME/.packages.stamp"
-if [ -f "$PACKAGES_FILE" ] && [ -s "$PACKAGES_FILE" ]; then
-    # Strip comments, blank lines, and Windows carriage returns
-    PACKAGES=$(grep -v '^\s*#' "$PACKAGES_FILE" | grep -v '^\s*$' | tr -d '\r' | tr '\n' ' ')
-    if [ -n "$(printf '%s' "$PACKAGES" | tr -d ' ')" ]; then
-        PACKAGES_HASH=$(md5sum "$PACKAGES_FILE" | cut -d' ' -f1)
-        LAST_HASH=""
-        [ -f "$PACKAGES_STAMP" ] && LAST_HASH=$(cat "$PACKAGES_STAMP")
-
-        # Reinstall if the file changed OR any package is missing from this container
-        # (missing happens when the container is recreated from a fresh image layer)
-        NEEDS_INSTALL=false
-        if [ "$PACKAGES_HASH" != "$LAST_HASH" ]; then
-            NEEDS_INSTALL=true
-        else
-            for PKG in $PACKAGES; do
-                if ! dpkg -s "$PKG" >/dev/null 2>&1; then
-                    NEEDS_INSTALL=true
-                    break
-                fi
-            done
-        fi
-
-        if [ "$NEEDS_INSTALL" = true ]; then
-            echo "Installing packages: $PACKAGES"
-            sudo apt-get update -qq
-            # shellcheck disable=SC2086
-            sudo apt-get install -y $PACKAGES
-            echo "$PACKAGES_HASH" > "$PACKAGES_STAMP"
-            echo "Done."
-        else
-          echo "Extra packages already satisfied; skipping install."
-        fi
-    fi
-fi
-
 # ── VNC password ───────────────────────────────────────────────────────────────
 mkdir -p ~/.vnc
 printf '%s' "${VNC_PASSWORD:-changeme}" | vncpasswd -f > ~/.vnc/passwd
@@ -155,6 +117,8 @@ cat > "$XFCONF/xfce4-panel.xml" << XMLEOF
     <property name="position"         type="string" value="p=8;x=${PANEL_X};y=${PANEL_Y}"/>
     <property name="length"           type="uint"   value="100"/>
     <property name="position-locked"  type="bool"   value="true"/>
+    <property name="autohide-behavior" type="uint"  value="0"/>
+    <property name="disable-struts"   type="bool"   value="false"/>
     <property name="size"             type="uint"   value="${PANEL_H}"/>
     <property name="nrows"            type="uint"   value="1"/>
     <property name="background-style" type="uint"   value="1"/>
@@ -276,87 +240,12 @@ Categories=Utility;
 StartupNotify=true
 EOF
 
-# ── Always write: Plank dock launchers/settings ──────────────────────────────
-# Written every start so dock behavior is deterministic and does not depend on
-# previous persisted state.
-mkdir -p "$HOME/.config/plank/dock1/launchers"
-
-make_dockitem() {
-  local ITEM_NAME="$1"; shift
-  local LAUNCHER_FILE="$HOME/.config/plank/dock1/launchers/${ITEM_NAME}.dockitem"
-  local APP_DIR
-  local DNAME
-
-  for DNAME in "$@"; do
-    for APP_DIR in "$HOME/.local/share/applications" /usr/share/applications /usr/local/share/applications; do
-      if [ -f "${APP_DIR}/${DNAME}.desktop" ]; then
-        printf '[PlankDockItemPreferences]\nLauncher=file://%s/%s.desktop\n' \
-          "$APP_DIR" "$DNAME" > "$LAUNCHER_FILE"
-        echo "$ITEM_NAME"
-        return 0
-      fi
-    done
-  done
-}
-
-make_dockitem_glob() {
-  local ITEM_NAME="$1"
-  local PATTERN="$2"
-  local LAUNCHER_FILE="$HOME/.config/plank/dock1/launchers/${ITEM_NAME}.dockitem"
-  local MATCH
-
-  MATCH=$(find "$HOME/.local/share/applications" /usr/share/applications /usr/local/share/applications \
-    -maxdepth 1 -type f -iname "$PATTERN" 2>/dev/null | sort | head -n1)
-  if [ -n "$MATCH" ]; then
-    printf '[PlankDockItemPreferences]\nLauncher=file://%s\n' "$MATCH" > "$LAUNCHER_FILE"
-    echo "$ITEM_NAME"
-    return 0
-  fi
-}
-
-DOCK_ITEMS=""
-append_item() { [ -n "$1" ] && DOCK_ITEMS="${DOCK_ITEMS:+${DOCK_ITEMS};;}${1}.dockitem"; }
-
-append_item "$(make_dockitem xfce4-terminal xfce4-terminal)"
-append_item "$(make_dockitem firefox firefox firefox-esr)"
-append_item "$(make_dockitem code code visual-studio-code)"
-append_item "$(make_dockitem claude-desktop claude-desktop-safe claude-desktop claude Claude)"
-if [ ! -f "$HOME/.config/plank/dock1/launchers/claude-desktop.dockitem" ]; then
-  append_item "$(make_dockitem_glob claude-desktop '*claude*.desktop')"
-fi
-
-cat > "$HOME/.config/plank/dock1/settings" << EOF
-[PlankDockPreferences]
-Monitor=
-HideMode=0
-HideDelay=0
-UnhideDelay=0
-PanelMode=true
-IconZoom=100
-ZoomEnabled=false
-Position=0
-IconSize=48
-Theme=Matte
-Alignment=1
-ItemsAlignment=1
-Offset=0
-CurrentWorkspaceOnly=false
-PinnedOnly=false
-AutoPinning=false
-LockItems=true
-PressureReveal=false
-DockItems=${DOCK_ITEMS}
-EOF
-
+# ── Dock behavior: disable Plank, use fixed XFCE panel only ──────────────────
+# Plank has continued to reposition in fullscreen; disable it for deterministic
+# layout. The XFCE bottom panel above remains position-locked.
 mkdir -p "$HOME/.config/autostart"
-cat > "$HOME/.config/autostart/plank.desktop" << 'EOF'
-[Desktop Entry]
-Name=Plank
-Comment=App launcher dock
-Exec=plank
-Type=Application
-X-GNOME-Autostart-enabled=true
-EOF
+rm -f "$HOME/.config/autostart/plank.desktop"
+pkill -x plank 2>/dev/null || true
 
 cat > "$HOME/.config/autostart/picom.desktop" << 'EOF'
 [Desktop Entry]

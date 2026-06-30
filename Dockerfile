@@ -47,6 +47,21 @@ RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc \
     && apt-get install -y code \
     && rm -rf /var/lib/apt/lists/*
 
+# ── Extra packages (build-time) ───────────────────────────────────────────────
+# Add one apt package per line to data/home/packages.txt.
+COPY data/home/packages.txt /tmp/packages.txt
+RUN PACKAGES=$(grep -v '^\s*#' /tmp/packages.txt | grep -v '^\s*$' | tr -d '\r' | tr '\n' ' ') \
+    && if [ -n "$(printf '%s' "$PACKAGES" | tr -d ' ')" ]; then \
+           echo "Installing extra packages: $PACKAGES"; \
+           apt-get update; \
+           # shellcheck disable=SC2086 \
+           apt-get install -y $PACKAGES; \
+       else \
+           echo "No extra packages requested in /tmp/packages.txt"; \
+       fi \
+    && rm -f /tmp/packages.txt \
+    && rm -rf /var/lib/apt/lists/*
+
 # ── Claude Desktop (amd64 + arm64) ────────────────────────────────────────────
 # Official Anthropic Linux packages were removed; use aaddrick/claude-desktop-debian
 # (community repackage, updated automatically on each Claude Desktop release).
