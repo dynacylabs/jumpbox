@@ -65,7 +65,7 @@ PANEL_Y="$((SCREEN_H - PANEL_H))"
 
 # ── XFCE4 config ───────────────────────────────────────────────────────────────
 # CONFIG_VERSION: bump this to force a re-init on all existing containers.
-CONFIG_VERSION=5
+CONFIG_VERSION=6
 XFCE4_CONF="$HOME/.config/xfce4"
 XFCONF="$XFCE4_CONF/xfconf/xfce-perchannel-xml"
 STORED_VER=$(cat "$XFCE4_CONF/.jumpbox-version" 2>/dev/null || echo 0)
@@ -251,18 +251,39 @@ EOF
     # Plank: left-side icon dock ─────────────────────────────────────────────
     mkdir -p "$HOME/.config/plank/dock1/launchers"
 
-    # Helper: find first existing .desktop file and write a dockitem for it
+    # Helper: find first existing desktop launcher from known names and paths.
     make_dockitem() {
-        local ITEM_NAME="$1"; shift
-        local LAUNCHER_FILE="$HOME/.config/plank/dock1/launchers/${ITEM_NAME}.dockitem"
-        for DNAME in "$@"; do
-            if [ -f "/usr/share/applications/${DNAME}.desktop" ]; then
-                printf '[PlankDockItemPreferences]\nLauncher=file:///usr/share/applications/%s.desktop\n' \
-                    "$DNAME" > "$LAUNCHER_FILE"
-                echo "$ITEM_NAME"  # return item filename
-                return 0
-            fi
+      local ITEM_NAME="$1"; shift
+      local LAUNCHER_FILE="$HOME/.config/plank/dock1/launchers/${ITEM_NAME}.dockitem"
+      local APP_DIR
+      local DNAME
+
+      for DNAME in "$@"; do
+        for APP_DIR in /usr/share/applications /usr/local/share/applications; do
+          if [ -f "${APP_DIR}/${DNAME}.desktop" ]; then
+            printf '[PlankDockItemPreferences]\nLauncher=file://%s/%s.desktop\n' \
+              "$APP_DIR" "$DNAME" > "$LAUNCHER_FILE"
+            echo "$ITEM_NAME"
+            return 0
+          fi
         done
+      done
+    }
+
+    # Helper: find first desktop launcher matching a glob pattern.
+    make_dockitem_glob() {
+      local ITEM_NAME="$1"
+      local PATTERN="$2"
+      local LAUNCHER_FILE="$HOME/.config/plank/dock1/launchers/${ITEM_NAME}.dockitem"
+      local MATCH
+
+      MATCH=$(find /usr/share/applications /usr/local/share/applications \
+        -maxdepth 1 -type f -iname "$PATTERN" 2>/dev/null | sort | head -n1)
+      if [ -n "$MATCH" ]; then
+        printf '[PlankDockItemPreferences]\nLauncher=file://%s\n' "$MATCH" > "$LAUNCHER_FILE"
+        echo "$ITEM_NAME"
+        return 0
+      fi
     }
 
     DOCK_ITEMS=""
@@ -271,7 +292,10 @@ EOF
     append_item "$(make_dockitem xfce4-terminal xfce4-terminal)"
     append_item "$(make_dockitem firefox firefox firefox-esr)"
     append_item "$(make_dockitem code code visual-studio-code)"
-    append_item "$(make_dockitem claude-desktop claude-desktop)"
+    append_item "$(make_dockitem claude-desktop claude-desktop claude Claude)"
+    if [ ! -f "$HOME/.config/plank/dock1/launchers/claude-desktop.dockitem" ]; then
+      append_item "$(make_dockitem_glob claude-desktop '*claude*.desktop')"
+    fi
 
     cat > "$HOME/.config/plank/dock1/settings" << EOF
 [PlankDockPreferences]
@@ -279,7 +303,7 @@ Monitor=
 HideMode=0
 HideDelay=0
 UnhideDelay=0
-PanelMode=false
+PanelMode=true
 IconZoom=130
 ZoomEnabled=true
 Position=0
