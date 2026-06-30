@@ -48,17 +48,25 @@ RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Claude Desktop (amd64 + arm64) ────────────────────────────────────────────
+# Official Anthropic Linux packages were removed; use aaddrick/claude-desktop-debian
+# (community repackage, updated automatically on each Claude Desktop release).
 RUN ARCH=$(dpkg --print-architecture) \
-    && case "$ARCH" in \
-         amd64) ARCH_LABEL="x64" ;; \
-         arm64) ARCH_LABEL="arm64" ;; \
-         *) echo "Unsupported arch: $ARCH" && exit 1 ;; \
-       esac \
     && apt-get update \
-    && wget -qO /tmp/claude-desktop.deb \
-         "https://storage.googleapis.com/osprey-downloads-c02f6a0d-347c-492b-a752-3e0651722e97/nest-linux-${ARCH_LABEL}/claude-desktop_latest_${ARCH}.deb" \
+    && wget -qO /tmp/gh-release.json \
+         "https://api.github.com/repos/aaddrick/claude-desktop-debian/releases/latest" \
+    && DEB_URL=$(python3 -c "
+import json, sys
+arch = sys.argv[1]
+with open('/tmp/gh-release.json') as f:
+    data = json.load(f)
+for a in data['assets']:
+    if a['name'].endswith('_' + arch + '.deb'):
+        print(a['browser_download_url'])
+        break
+" "$ARCH") \
+    && wget -qO /tmp/claude-desktop.deb "$DEB_URL" \
     && apt-get install -y /tmp/claude-desktop.deb \
-    && rm -f /tmp/claude-desktop.deb \
+    && rm -f /tmp/claude-desktop.deb /tmp/gh-release.json \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Non-root user ──────────────────────────────────────────────────────────────
