@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     plank \
     ssh \
     git \
+    nano \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Firefox (Mozilla Team PPA – native .deb, supports amd64 + arm64) ──────────
