@@ -130,10 +130,6 @@ cat > "$XFCONF/xfce4-panel.xml" << XMLEOF
     </property>
     <property name="plugin-ids" type="array">
       <value type="int" value="1"/>
-      <value type="int" value="5"/>
-      <value type="int" value="6"/>
-      <value type="int" value="7"/>
-      <value type="int" value="8"/>
       <value type="int" value="2"/>
       <value type="int" value="3"/>
       <value type="int" value="4"/>
@@ -144,27 +140,6 @@ cat > "$XFCONF/xfce4-panel.xml" << XMLEOF
     <property name="show-button-title" type="bool"   value="true"/>
     <property name="button-title"      type="string" value="Apps"/>
     <property name="show-button-icon"  type="bool"   value="true"/>
-  </property>
-  <!-- Launchers: Terminal, Firefox, VS Code, Claude Desktop -->
-  <property name="plugins/plugin-5" type="string" value="launcher">
-    <property name="items" type="array">
-      <value type="string" value="jumpbox-terminal.desktop"/>
-    </property>
-  </property>
-  <property name="plugins/plugin-6" type="string" value="launcher">
-    <property name="items" type="array">
-      <value type="string" value="jumpbox-firefox.desktop"/>
-    </property>
-  </property>
-  <property name="plugins/plugin-7" type="string" value="launcher">
-    <property name="items" type="array">
-      <value type="string" value="jumpbox-code.desktop"/>
-    </property>
-  </property>
-  <property name="plugins/plugin-8" type="string" value="launcher">
-    <property name="items" type="array">
-      <value type="string" value="claude-desktop-safe.desktop"/>
-    </property>
   </property>
   <!-- Tasklist: all open/minimized windows, expands to fill available space -->
   <property name="plugins/plugin-2" type="string" value="tasklist">
@@ -262,42 +237,6 @@ Icon=$CLAUDE_ICON
 Terminal=false
 Type=Application
 Categories=Utility;
-StartupNotify=true
-EOF
-
-cat > "$HOME/.local/share/applications/jumpbox-terminal.desktop" << 'EOF'
-[Desktop Entry]
-Name=Terminal
-Comment=XFCE Terminal
-Exec=xfce4-terminal
-Icon=utilities-terminal
-Terminal=false
-Type=Application
-Categories=System;TerminalEmulator;
-StartupNotify=true
-EOF
-
-cat > "$HOME/.local/share/applications/jumpbox-firefox.desktop" << 'EOF'
-[Desktop Entry]
-Name=Firefox
-Comment=Web Browser
-Exec=firefox %u
-Icon=firefox
-Terminal=false
-Type=Application
-Categories=Network;WebBrowser;
-StartupNotify=true
-EOF
-
-cat > "$HOME/.local/share/applications/jumpbox-code.desktop" << 'EOF'
-[Desktop Entry]
-Name=VS Code
-Comment=Code Editor
-Exec=code --no-sandbox --unity-launch %F
-Icon=code
-Terminal=false
-Type=Application
-Categories=Development;IDE;
 StartupNotify=true
 EOF
 
