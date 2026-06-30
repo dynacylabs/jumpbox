@@ -1,0 +1,13 @@
+# Ignore VCS and editor artifacts
+.git
+.gitignore
+.vscode
+
+# Runtime/persistent data should not be part of image build context
+# (contains caches, keyrings, sockets, and large profiles)
+data/home
+
+# Explicit socket patterns in case other paths are added later
+**/*.sock
+**/S.gpg-agent*
+**/keyring-*/control

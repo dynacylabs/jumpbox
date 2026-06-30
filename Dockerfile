@@ -54,16 +54,7 @@ RUN ARCH=$(dpkg --print-architecture) \
     && apt-get update \
     && wget -qO /tmp/gh-release.json \
          "https://api.github.com/repos/aaddrick/claude-desktop-debian/releases/latest" \
-    && DEB_URL=$(python3 -c "
-import json, sys
-arch = sys.argv[1]
-with open('/tmp/gh-release.json') as f:
-    data = json.load(f)
-for a in data['assets']:
-    if a['name'].endswith('_' + arch + '.deb'):
-        print(a['browser_download_url'])
-        break
-" "$ARCH") \
+    && DEB_URL=$(python3 -c "import json,sys;arch=sys.argv[1];data=json.load(open('/tmp/gh-release.json'));print(next(a['browser_download_url'] for a in data['assets'] if a['name'].endswith('_'+arch+'.deb')))" "$ARCH") \
     && wget -qO /tmp/claude-desktop.deb "$DEB_URL" \
     && apt-get install -y /tmp/claude-desktop.deb \
     && rm -f /tmp/claude-desktop.deb /tmp/gh-release.json \
